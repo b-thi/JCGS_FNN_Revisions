@@ -9,6 +9,11 @@
 # Libraries
 library(fda.usc)
 
+# Setting up environment
+library(reticulate)
+use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+
 # Dataset
 # MAKE SURE YOU LOAD FDA.USC PACKAGE BEFORE YOU LOAD FDA PACKAGE IN ORDER TO GET
 # THE PROPER LOAD IN OF THE DATA
@@ -97,7 +102,6 @@ pred_tec = FNN_Predict(tecator_comp,
 # Getting back results
 MEP = mean(((pred_tec - tecResp_test)^2))/var(tecResp_test)
 Rsquared = sum((pred_tec - mean(tecResp_test))^2)/sum((tecResp_test - mean(tecResp_test))^2)
-
 
 # Check 1
 # Check 2

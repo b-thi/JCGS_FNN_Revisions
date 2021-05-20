@@ -54,7 +54,7 @@ for (u in 1:sim_num) {
   ################## 
   # Splitting data #
   ##################
-  
+
   # Generating data for each of observations
   sim_data <- matrix(nrow = 300, ncol = 100)
   for (j in 1:300) {
@@ -229,7 +229,7 @@ for (u in 1:sim_num) {
   # Running Functional Neural Network #
   #####################################
   
-  # Running FNN for bike
+  # Running FNN for simulation
   use_session_with_seed(
     u,
     disable_gpu = F,

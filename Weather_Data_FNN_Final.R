@@ -111,6 +111,14 @@ for (i in 1:num_folds) {
   func_np = fregre.np(train_x, train_y, Ker = AKer.tri, metric = semimetric.deriv)
   pred_np = predict(func_np, test_x)
   
+  #######################################
+  # Running Conventional Neural Network #
+  #######################################
+  
+  ########################################
+  # Running Convolutional Neural Network #
+  ########################################
+  
   #####################################
   # Running Functional Neural Network #
   #####################################
@@ -173,7 +181,7 @@ for (i in 1:num_folds) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Weather = matrix(nrow = 8, ncol = 2)
+Final_Table_Weather = matrix(nrow = 8, ncol = 3)
 
 # Collecting errors
 Final_Table_Weather[1, 1] = mean(error_mat_lm[,1], na.rm = T)
@@ -195,8 +203,43 @@ Final_Table_Weather[6, 2] = rsq(error_mat_pls1[,2], total_prec)
 Final_Table_Weather[7, 2] = rsq(error_mat_pls2[,2], total_prec)
 Final_Table_Weather[8, 2] = rsq(error_mat_fnn[,2], total_prec)
 
+# Standard error
+Final_Table_Weather[1, 3] = sd(c(error_mat_lm[,1]), na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[2, 3] = sd(error_mat_np[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[3, 3] = sd(error_mat_pc1[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[4, 3] = sd(error_mat_pc2[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[5, 3] = sd(error_mat_pc3[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[6, 3] = sd(error_mat_pls1[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[7, 3] = sd(error_mat_pls2[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[8, 3] = sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds)
+
 # Looking at results
 Final_Table_Weather
+
+# Running t-tests
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm[, 1],
+                  error_mat_np[, 1],
+                  error_mat_pc1[, 1],
+                  error_mat_pc2[, 1],
+                  error_mat_pc3[, 1],
+                  error_mat_pls1[, 1],
+                  error_mat_pls2[, 1],
+                  error_mat_fnn[, 1])
+
+# Initializing
+p_value_df = matrix(nrow = ncol(t_test_df), ncol = ncol(t_test_df))
+colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "FNN")
+rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "FNN")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  for(j in 1:ncol(t_test_df)) {
+    test_results = t.test(t_test_df[, i], t_test_df[, j], var.equal = F)
+    p_value_df[i, j] = test_results$p.value
+  }
+}
 
 #########################
 # Usual Neural Networks #

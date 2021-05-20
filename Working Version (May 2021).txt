@@ -1,0 +1,33 @@
+# R versions
+tensorflow -> 2.2.0
+keras -> 2.2.5.0
+Fda -> 2.4.8
+Fda.usc -> 1.5.0
+ggplot2 -> 3.3.3
+ggpubr -> 0.4.0
+caret -> 6.0-86
+pbapply -> 1.4-3
+reticulate -> 1.20
+
+# Some R code
+require(devtools)
+install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
+install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
+library(reticulate)
+use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+
+# Remember to delete .Rdata and restart session to make sure the environments activate
+
+# Python versions
+tensorflow -> 1.14.0
+keras -> 2.2.4
+r-tensorflow -> 1.13.1
+r-keras 2.2.4.1
+
+# Some Python Commands
+conda create --name python37 activate
+pip install tensorflow==1.14.0
+pip install keras==2.2.4
+
+# Remember to also install the r- versions in anaconda nav

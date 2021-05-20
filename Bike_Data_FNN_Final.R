@@ -68,6 +68,7 @@ error_mat_pc3 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls1 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls2 = matrix(nrow = num_folds, ncol = 2)
 error_mat_np = matrix(nrow = num_folds, ncol = 2)
+error_mat_nn = matrix(nrow = num_folds, ncol = 2)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 2)
 
 # Looping to get results
@@ -123,6 +124,76 @@ for (i in 1:num_folds) {
   func_np = fregre.np(train_x, train_y, Ker = AKer.tri, metric = semimetric.deriv)
   pred_np = predict(func_np, test_x)
   
+  ########################################
+  # Running Convolutional Neural Network #
+  ########################################
+  
+  ########################################
+  # Running Conventional Neural Network  #
+  ########################################
+  
+  # Setting up MV data
+  MV_train = as.data.frame(bike$temp[-fold_ind[[i]],])
+  MV_test = as.data.frame(bike$temp[fold_ind[[i]],])
+  
+  # Initializing
+  min_error = 99999
+  
+  # random split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Setting up FNN model
+  for(u in 1:10){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 32, activation = 'sigmoid') %>%
+      layer_dense(units = 32, activation = 'sigmoid') %>%
+      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 32, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.002), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    
+    # Training FNN model
+    model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                     train_y[train_split], 
+                     epochs = 250,  
+                     validation_split = 0.15,
+                     callbacks = list(early_stop),
+                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error = error_nn_train
+      
+    }
+    
+  }
+  
   #####################################
   # Running Functional Neural Network #
   #####################################
@@ -132,7 +203,7 @@ for (i in 1:num_folds) {
                       func_cov = bike_data_train, 
                       scalar_cov = NULL,
                       basis_choice = c("fourier"), 
-                      num_basis = c(3),
+                      num_basis = c(63),
                       hidden_layers = 4,
                       neurons_per_layer = c(32, 32, 32, 32),
                       activations_in_layers = c("sigmoid", "sigmoid", "relu", "linear"),
@@ -152,7 +223,7 @@ for (i in 1:num_folds) {
                           bike_data_test, 
                           scalar_cov = NULL,
                           basis_choice = c("fourier"), 
-                          num_basis = c(3),
+                          num_basis = c(63),
                           domain_range = list(c(1, 24)))
   
   ###################
@@ -167,6 +238,7 @@ for (i in 1:num_folds) {
   error_mat_pls1[i, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2[i, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np[i, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_nn[i, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn[i, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   
   # R^2 Results
@@ -177,6 +249,7 @@ for (i in 1:num_folds) {
   error_mat_pls1[i, 2] = 1 - sum((pred_pls - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_pls2[i, 2] = 1 - sum((pred_pls2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_np[i, 2] = 1 - sum((pred_np - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_nn[i, 2] = 1 - sum((pred_nn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_fnn[i, 2] = 1 - sum((pred_fnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   
   # Printing iteration number
@@ -185,20 +258,47 @@ for (i in 1:num_folds) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Bike = matrix(nrow = 8, ncol = 2)
+Final_Table_Bike = matrix(nrow = 9, ncol = 3)
 
-# Collecting errors
-Final_Table_Bike[1, ] = colMeans(error_mat_lm, na.rm = T)
-Final_Table_Bike[2, ] = colMeans(error_mat_np, na.rm = T)
-Final_Table_Bike[3, ] = colMeans(error_mat_pc1, na.rm = T)
-Final_Table_Bike[4, ] = colMeans(error_mat_pc2, na.rm = T)
-Final_Table_Bike[5, ] = colMeans(error_mat_pc3, na.rm = T)
-Final_Table_Bike[6, ] = colMeans(error_mat_pls1, na.rm = T)
-Final_Table_Bike[7, ] = colMeans(error_mat_pls2, na.rm = T)
-Final_Table_Bike[8, ] = colMeans(error_mat_fnn, na.rm = T)
+# Collecting errors, R^2, and SE
+Final_Table_Bike[1, ] = c(colMeans(error_mat_lm, na.rm = T), sd(error_mat_lm[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[2, ] = c(colMeans(error_mat_np, na.rm = T), sd(error_mat_np[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[3, ] = c(colMeans(error_mat_pc1, na.rm = T), sd(error_mat_pc1[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[4, ] = c(colMeans(error_mat_pc2, na.rm = T), sd(error_mat_pc2[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[5, ] = c(colMeans(error_mat_pc3, na.rm = T), sd(error_mat_pc3[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[6, ] = c(colMeans(error_mat_pls1, na.rm = T), sd(error_mat_pls1[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[7, ] = c(colMeans(error_mat_pls2, na.rm = T), sd(error_mat_pls2[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[8, ] = c(colMeans(error_mat_nn, na.rm = T), sd(error_mat_nn[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[9, ] = c(colMeans(error_mat_fnn, na.rm = T), sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds))
 
 # Looking at results
 Final_Table_Bike
+
+# Running t-tests
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm[, 1],
+                  error_mat_np[, 1],
+                  error_mat_pc1[, 1],
+                  error_mat_pc2[, 1],
+                  error_mat_pc3[, 1],
+                  error_mat_pls1[, 1],
+                  error_mat_pls2[, 1],
+                  error_mat_nn[, 1],
+                  error_mat_fnn[, 1])
+
+# Initializing
+p_value_df = matrix(nrow = ncol(t_test_df), ncol = ncol(t_test_df))
+colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "NN", "FNN")
+rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "NN", "FNN")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  for(j in 1:ncol(t_test_df)) {
+    test_results = t.test(t_test_df[, i], t_test_df[, j], var.equal = F)
+    p_value_df[i, j] = test_results$p.value
+  }
+}
 
 # Check 1
 # Check 2

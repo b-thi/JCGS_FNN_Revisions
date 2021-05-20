@@ -15,8 +15,13 @@ library(ggpubr)
 library(caret)
 library(pbapply)
 
+# Setting up environment
+# library(reticulate)
+# use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+# use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+
 # require(devtools)
-# install_version("tensorflow", version = "1.14.0", repos = "http://cran.us.r-project.org")
+# install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
 # install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
 
 # (1) FNN Function

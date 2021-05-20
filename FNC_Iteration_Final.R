@@ -33,7 +33,6 @@ bike_data[,,1] = func_cov_1
 # fData Object
 bike_fdata = fdata(bike$temp, argvals = 1:24, rangeval = c(1, 24))
 
-
 # Creating list
 plot_list = list()
 
