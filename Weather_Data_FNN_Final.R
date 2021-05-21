@@ -56,6 +56,8 @@ error_mat_pc3 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls1 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls2 = matrix(nrow = num_folds, ncol = 2)
 error_mat_np = matrix(nrow = num_folds, ncol = 2)
+error_mat_cnn = matrix(nrow = num_folds, ncol = 2)
+error_mat_nn = matrix(nrow = num_folds, ncol = 2)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 2)
 
 # Looping to get results
@@ -111,13 +113,146 @@ for (i in 1:num_folds) {
   func_np = fregre.np(train_x, train_y, Ker = AKer.tri, metric = semimetric.deriv)
   pred_np = predict(func_np, test_x)
   
-  #######################################
-  # Running Conventional Neural Network #
-  #######################################
-  
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting up MV data
+  MV_train = as.data.frame(t(daily$tempav)[-fold_ind[[i]],])
+  MV_test = as.data.frame(t(daily$tempav)[fold_ind[[i]],])
+  
+  # Initializing
+  min_error = 99999
+  
+  # random split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Setting up FNN model
+  for(u in 1:1){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.02), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training FNN model
+    model_cnn %>% fit(reshaped_data_tensor_train, 
+                      train_y[train_split], 
+                      epochs = 250,  
+                      validation_split = 0.15,
+                      callbacks = list(early_stop),
+                      verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(ncol(MV_test), nrow(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error = error_cnn_train
+      
+    }
+    
+  }
+  
+  ########################################
+  # Running Conventional Neural Network  #
+  ########################################
+  
+  # Setting up MV data
+  MV_train = as.data.frame(t(daily$tempav)[-fold_ind[[i]],])
+  MV_test = as.data.frame(t(daily$tempav)[fold_ind[[i]],])
+  
+  # Initializing
+  min_error = 99999
+  
+  # random split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Setting up FNN model
+  for(u in 1:1){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.002), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    
+    # Training FNN model
+    model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                     train_y[train_split], 
+                     epochs = 250,  
+                     validation_split = 0.15,
+                     callbacks = list(early_stop),
+                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(t(MV_test)))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error = error_nn_train
+      
+    }
+    
+  }
   
   #####################################
   # Running Functional Neural Network #
@@ -163,17 +298,21 @@ for (i in 1:num_folds) {
   error_mat_pls1[i, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2[i, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np[i, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn[i, 1] = mean((pred_cnn - test_y)^2, na.rm = T)
+  error_mat_nn[i, 1] = mean((pred_nn - test_y)^2, na.rm = T)
   error_mat_fnn[i, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   
   # R^2 Results
-  error_mat_lm[i, 2] = c(pred_basis)
-  error_mat_pc1[i, 2] = pred_pc
-  error_mat_pc2[i, 2] = pred_pc2
-  error_mat_pc3[i, 2] = pred_pc3
-  error_mat_pls1[i, 2] = pred_pls
-  error_mat_pls2[i, 2] = pred_pls2
-  error_mat_np[i, 2] = pred_np
-  error_mat_fnn[i, 2] = pred_fnn
+  error_mat_lm[i, 2] = 1 - sum((c(pred_basis) - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_pc1[i, 2] = 1 - sum((pred_pc - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_pc2[i, 2] = 1 - sum((pred_pc2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_pc3[i, 2] = 1 - sum((pred_pc3 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_pls1[i, 2] = 1 - sum((pred_pls - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_pls2[i, 2] = 1 - sum((pred_pls2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_np[i, 2] = 1 - sum((pred_np - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_cnn[i, 2] = 1 - sum((pred_cnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_nn[i, 2] = 1 - sum((pred_nn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_fnn[i, 2] = 1 - sum((pred_fnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
  
   # Printing iteration number
   print(paste0("Done Iteration: ", i))
@@ -181,7 +320,7 @@ for (i in 1:num_folds) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Weather = matrix(nrow = 8, ncol = 3)
+Final_Table_Weather = matrix(nrow = 10, ncol = 3)
 
 # Collecting errors
 Final_Table_Weather[1, 1] = mean(error_mat_lm[,1], na.rm = T)
@@ -191,7 +330,9 @@ Final_Table_Weather[4, 1] = mean(error_mat_pc2[,1], na.rm = T)
 Final_Table_Weather[5, 1] = mean(error_mat_pc3[,1], na.rm = T)
 Final_Table_Weather[6, 1] = mean(error_mat_pls1[,1], na.rm = T)
 Final_Table_Weather[7, 1] = mean(error_mat_pls2[,1], na.rm = T)
-Final_Table_Weather[8, 1] = mean(error_mat_fnn[,1], na.rm = T)
+Final_Table_Weather[8, 1] = mean(error_mat_cnn[,1], na.rm = T)
+Final_Table_Weather[9, 1] = mean(error_mat_nn[,1], na.rm = T)
+Final_Table_Weather[10, 1] = mean(error_mat_fnn[,1], na.rm = T)
 
 # R_Squared value
 Final_Table_Weather[1, 2] = rsq(c(error_mat_lm[,2]), total_prec)
@@ -201,7 +342,9 @@ Final_Table_Weather[4, 2] = rsq(error_mat_pc2[,2], total_prec)
 Final_Table_Weather[5, 2] = rsq(error_mat_pc3[,2], total_prec)
 Final_Table_Weather[6, 2] = rsq(error_mat_pls1[,2], total_prec)
 Final_Table_Weather[7, 2] = rsq(error_mat_pls2[,2], total_prec)
-Final_Table_Weather[8, 2] = rsq(error_mat_fnn[,2], total_prec)
+Final_Table_Weather[8, 2] = rsq(error_mat_cnn[,2], total_prec)
+Final_Table_Weather[9, 2] = rsq(error_mat_nn[,2], total_prec)
+Final_Table_Weather[10, 2] = rsq(error_mat_fnn[,2], total_prec)
 
 # Standard error
 Final_Table_Weather[1, 3] = sd(c(error_mat_lm[,1]), na.rm = T)/sqrt(num_folds)
@@ -211,9 +354,13 @@ Final_Table_Weather[4, 3] = sd(error_mat_pc2[,1], na.rm = T)/sqrt(num_folds)
 Final_Table_Weather[5, 3] = sd(error_mat_pc3[,1], na.rm = T)/sqrt(num_folds)
 Final_Table_Weather[6, 3] = sd(error_mat_pls1[,1], na.rm = T)/sqrt(num_folds)
 Final_Table_Weather[7, 3] = sd(error_mat_pls2[,1], na.rm = T)/sqrt(num_folds)
-Final_Table_Weather[8, 3] = sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[8, 3] = sd(error_mat_cnn[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[9, 3] = sd(error_mat_nn[,1], na.rm = T)/sqrt(num_folds)
+Final_Table_Weather[10, 3] = sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds)
 
 # Looking at results
+colnames(Final_Table_Bike) <- c("CV_MSPE", "R2", "SE")
+rownames(Final_Table_Bike) <- c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 Final_Table_Weather
 
 # Running t-tests
@@ -226,12 +373,14 @@ t_test_df = cbind(error_mat_lm[, 1],
                   error_mat_pc3[, 1],
                   error_mat_pls1[, 1],
                   error_mat_pls2[, 1],
+                  error_mat_cnn[, 1],
+                  error_mat_nn[, 1],
                   error_mat_fnn[, 1])
 
 # Initializing
 p_value_df = matrix(nrow = ncol(t_test_df), ncol = ncol(t_test_df))
-colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "FNN")
-rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "FNN")
+colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
+rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 
 # Getting p-values
 for(i in 1:ncol(t_test_df)) {

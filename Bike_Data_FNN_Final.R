@@ -28,7 +28,7 @@ use_session_with_seed(
 load("bike.RData")
 
 # Obtaining response
-rentals = log10(bike$y)
+rentals = sqrt(bike$y)
 
 # define the time points on which the functional predictor is observed. 
 timepts = bike$timepts
@@ -68,6 +68,7 @@ error_mat_pc3 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls1 = matrix(nrow = num_folds, ncol = 2)
 error_mat_pls2 = matrix(nrow = num_folds, ncol = 2)
 error_mat_np = matrix(nrow = num_folds, ncol = 2)
+error_mat_cnn = matrix(nrow = num_folds, ncol = 2)
 error_mat_nn = matrix(nrow = num_folds, ncol = 2)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 2)
 
@@ -128,6 +129,80 @@ for (i in 1:num_folds) {
   # Running Convolutional Neural Network #
   ########################################
   
+  # Setting up MV data
+  MV_train = as.data.frame(bike$temp[-fold_ind[[i]],])
+  MV_test = as.data.frame(bike$temp[fold_ind[[i]],])
+  
+  # Initializing
+  min_error = 99999
+  
+  # random split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Setting up FNN model
+  for(u in 1:5){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.02), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training FNN model
+    model_cnn %>% fit(reshaped_data_tensor_train, 
+                     train_y[train_split], 
+                     epochs = 250,  
+                     validation_split = 0.15,
+                     callbacks = list(early_stop),
+                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error = error_cnn_train
+      
+    }
+    
+  }
+  
   ########################################
   # Running Conventional Neural Network  #
   ########################################
@@ -143,15 +218,12 @@ for (i in 1:num_folds) {
   train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
   
   # Setting up FNN model
-  for(u in 1:10){
+  for(u in 1:5){
     
     # setting up model
     model_nn <- keras_model_sequential()
     model_nn %>% 
-      layer_dense(units = 32, activation = 'sigmoid') %>%
-      layer_dense(units = 32, activation = 'sigmoid') %>%
       layer_dense(units = 32, activation = 'relu') %>%
-      layer_dense(units = 32, activation = 'linear') %>%
       layer_dense(units = 1, activation = 'linear')
     
     # Setting parameters for NN model
@@ -203,7 +275,7 @@ for (i in 1:num_folds) {
                       func_cov = bike_data_train, 
                       scalar_cov = NULL,
                       basis_choice = c("fourier"), 
-                      num_basis = c(63),
+                      num_basis = c(9),
                       hidden_layers = 4,
                       neurons_per_layer = c(32, 32, 32, 32),
                       activations_in_layers = c("sigmoid", "sigmoid", "relu", "linear"),
@@ -223,7 +295,7 @@ for (i in 1:num_folds) {
                           bike_data_test, 
                           scalar_cov = NULL,
                           basis_choice = c("fourier"), 
-                          num_basis = c(63),
+                          num_basis = c(9),
                           domain_range = list(c(1, 24)))
   
   ###################
@@ -238,6 +310,7 @@ for (i in 1:num_folds) {
   error_mat_pls1[i, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2[i, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np[i, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn[i, 1] = mean((c(pred_cnn) - test_y)^2, na.rm = T)
   error_mat_nn[i, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn[i, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   
@@ -249,6 +322,7 @@ for (i in 1:num_folds) {
   error_mat_pls1[i, 2] = 1 - sum((pred_pls - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_pls2[i, 2] = 1 - sum((pred_pls2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_np[i, 2] = 1 - sum((pred_np - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
+  error_mat_cnn[i, 2] = 1 - sum((pred_cnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_nn[i, 2] = 1 - sum((pred_nn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   error_mat_fnn[i, 2] = 1 - sum((pred_fnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
   
@@ -258,7 +332,7 @@ for (i in 1:num_folds) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Bike = matrix(nrow = 9, ncol = 3)
+Final_Table_Bike = matrix(nrow = 10, ncol = 3)
 
 # Collecting errors, R^2, and SE
 Final_Table_Bike[1, ] = c(colMeans(error_mat_lm, na.rm = T), sd(error_mat_lm[,1], na.rm = T)/sqrt(num_folds))
@@ -268,10 +342,13 @@ Final_Table_Bike[4, ] = c(colMeans(error_mat_pc2, na.rm = T), sd(error_mat_pc2[,
 Final_Table_Bike[5, ] = c(colMeans(error_mat_pc3, na.rm = T), sd(error_mat_pc3[,1], na.rm = T)/sqrt(num_folds))
 Final_Table_Bike[6, ] = c(colMeans(error_mat_pls1, na.rm = T), sd(error_mat_pls1[,1], na.rm = T)/sqrt(num_folds))
 Final_Table_Bike[7, ] = c(colMeans(error_mat_pls2, na.rm = T), sd(error_mat_pls2[,1], na.rm = T)/sqrt(num_folds))
-Final_Table_Bike[8, ] = c(colMeans(error_mat_nn, na.rm = T), sd(error_mat_nn[,1], na.rm = T)/sqrt(num_folds))
-Final_Table_Bike[9, ] = c(colMeans(error_mat_fnn, na.rm = T), sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[8, ] = c(colMeans(error_mat_cnn, na.rm = T), sd(error_mat_cnn[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[9, ] = c(colMeans(error_mat_nn, na.rm = T), sd(error_mat_nn[,1], na.rm = T)/sqrt(num_folds))
+Final_Table_Bike[10, ] = c(colMeans(error_mat_fnn, na.rm = T), sd(error_mat_fnn[,1], na.rm = T)/sqrt(num_folds))
 
 # Looking at results
+colnames(Final_Table_Bike) <- c("CV_MSPE", "R2", "SE")
+rownames(Final_Table_Bike) <- c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 Final_Table_Bike
 
 # Running t-tests
@@ -284,13 +361,14 @@ t_test_df = cbind(error_mat_lm[, 1],
                   error_mat_pc3[, 1],
                   error_mat_pls1[, 1],
                   error_mat_pls2[, 1],
+                  error_mat_cnn[, 1],
                   error_mat_nn[, 1],
                   error_mat_fnn[, 1])
 
 # Initializing
 p_value_df = matrix(nrow = ncol(t_test_df), ncol = ncol(t_test_df))
-colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "NN", "FNN")
-rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "NN", "FNN")
+colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
+rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 
 # Getting p-values
 for(i in 1:ncol(t_test_df)) {
