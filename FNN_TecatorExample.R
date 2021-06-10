@@ -20,16 +20,11 @@
 # Parameter Count in NN:
 ##############################
 
-# Libraries
-library(fda.usc)
-
-# Dataset
-# MAKE SURE YOU LOAD FDA.USC PACKAGE BEFORE YOU LOAD FDA PACKAGE IN ORDER TO GET
-# THE PROPER LOAD IN OF THE DATA
-data("tecator")
-
 # Source for FNN
 source("FNN.R")
+
+# Loading data
+tecator = readRDS("tecator.RDS")
 
 # Clearing backend
 K <- backend()

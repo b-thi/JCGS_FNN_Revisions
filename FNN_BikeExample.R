@@ -572,7 +572,7 @@ for (i in 1:num_folds) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Bike = matrix(nrow = 10, ncol = 3)
+Final_Table_Bike = matrix(nrow = num_folds, ncol = 3)
 
 # Collecting errors, R^2, and SE
 Final_Table_Bike[1, ] = c(colMeans(error_mat_lm, na.rm = T), sd(error_mat_lm[,1], na.rm = T)/sqrt(num_folds))

@@ -16,6 +16,19 @@ library(caret)
 library(pbapply)
 library(fda.usc)
 library(gridExtra)
+library(tidyverse)
+library(reshape)
+library(randomForest)
+library(future.apply)
+library(earth)
+library(gam)
+library(gbm)
+library(matrixStats)
+library(glmnet)
+library(FinCal)
+library(reshape2)
+library(grid)
+
 
 # Setting up environment
 library(reticulate)
@@ -26,7 +39,7 @@ use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
 # install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
 # install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
 
-# (0)
+# (0) First Layer Function -- for direct connection to Keras
 
 # First Layer Function
 FNN_First_Layer <- function(func_cov, 

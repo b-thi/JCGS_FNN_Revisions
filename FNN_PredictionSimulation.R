@@ -5,23 +5,6 @@
 ##############################
 
 ##### Libraries #####
-library(fda)
-library(fda.usc)
-library(tidyverse)
-library(gridExtra)
-library(ggpubr)
-library(reshape)
-library(randomForest)
-library(future.apply)
-library(earth)
-library(gam)
-library(gbm)
-library(caret)
-library(matrixStats)
-library(glmnet)
-library(FinCal)
-library(reshape2)
-library(grid)
 source("FNN.R")
 
 ##############################

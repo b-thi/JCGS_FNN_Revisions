@@ -5,7 +5,6 @@
 ####################################
 
 # Libraries
-library(fda.usc)
 source("FNN.R")
 
 # Loading data

@@ -5,7 +5,6 @@
 ##############################
 
 # Libraries
-library(fda.usc)
 source("FNN.R")
 
 # Clearing backend
