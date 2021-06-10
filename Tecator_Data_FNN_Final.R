@@ -4,15 +4,24 @@
 #                            #
 ##############################
 
-# Functional Neural Networks
+##############################
+# Data Information:
+#
+# Tecator Data Set
+# Observations: 
+# Continuum Points: 
+# Domain: 
+# Basis Functions used for Functional Observations: 
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+##############################
 
 # Libraries
 library(fda.usc)
-
-# Setting up environment
-library(reticulate)
-use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
-use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
 
 # Dataset
 # MAKE SURE YOU LOAD FDA.USC PACKAGE BEFORE YOU LOAD FDA PACKAGE IN ORDER TO GET

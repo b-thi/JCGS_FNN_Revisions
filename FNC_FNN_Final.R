@@ -4,8 +4,6 @@
 #                            #
 ##############################
 
-# Functional Neural Networks
-
 # Libraries
 library(fda.usc)
 source("FNN.R")

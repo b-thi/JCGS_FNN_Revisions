@@ -1,3 +1,9 @@
+####################################
+#                                  #
+# Functional Weight Plot - Final   #
+#                                  #
+####################################
+
 # Libraries
 library(fda.usc)
 source("FNN.R")

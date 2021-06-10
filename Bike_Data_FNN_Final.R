@@ -4,21 +4,35 @@
 #                            #
 ##############################
 
-# Functional Neural Networks
+
+##############################
+# Data Information:
+#
+# Bike Data Set
+# Observations: 102
+# Continuum Points: 24
+# Domain: [1, 24]
+# Basis Functions used for Functional Observations: 31
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 10
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+##############################
 
 # Libraries
-library(fda.usc)
 source("FNN.R")
 
 # Clearing backend
 K <- backend()
 K$clear_session()
-options(warn=-1)
+options(warn = -1)
 
 # Setting seeds
-set.seed(1995)
+set.seed(1994)
 use_session_with_seed(
-  1995,
+  1994,
   disable_gpu = F,
   disable_parallel_cpu = F,
   quiet = T
@@ -55,7 +69,7 @@ bike_data[,,1] = func_cov_1
 bike_fdata = fdata(bike$temp, argvals = 1:24, rangeval = c(1, 24))
 
 # Choosing fold number
-num_folds = 10
+num_folds = 5
 
 # Creating folds
 fold_ind = createFolds(rentals, k = num_folds)
@@ -72,13 +86,47 @@ error_mat_cnn = matrix(nrow = num_folds, ncol = 2)
 error_mat_nn = matrix(nrow = num_folds, ncol = 2)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 2)
 
+# Doing pre-processing of neural networks
+if(dim(bike_data)[3] > 1){
+  # Now, let's pre-process
+  pre_dat = FNN_First_Layer(func_cov = bike_data,
+                           basis_choice = c("fourier", "fourier", "fourier"),
+                           num_basis = c(5, 7, 9),
+                           domain_range = list(c(min(timepts), max(timepts)), 
+                                               c(min(timepts), max(timepts)), 
+                                               c(min(timepts), max(timepts))),
+                           covariate_scaling = T,
+                           raw_data = F)
+  
+} else {
+  
+  # Now, let's pre-process
+  pre_dat = FNN_First_Layer(func_cov = bike_data,
+                           basis_choice = c("fourier"),
+                           num_basis = c(17),
+                           domain_range = list(c(min(timepts), max(timepts))),
+                           covariate_scaling = T,
+                           raw_data = F)
+}
+
+# Functional weights
+func_weights = matrix(nrow = num_folds, ncol = 17)
+flm_weights = list()
+nn_training_plot <- list()
+cnn_training_plot <- list()
+fnn_training_plot <- list()
+
+# For testing
+# i = 1
+# u = 1
+
 # Looping to get results
 for (i in 1:num_folds) {
   
   ################## 
   # Splitting data #
   ##################
-
+  
   # Test and train
   train_x = bike_fdata[-fold_ind[[i]],]
   test_x = bike_fdata[fold_ind[[i]],]
@@ -86,10 +134,14 @@ for (i in 1:num_folds) {
   test_y = rentals[fold_ind[[i]]]
   
   # Setting up for FNN
-  bike_data_train = array(dim = c(31, nrow(train_x$data), 1))
-  bike_data_test = array(dim = c(31, nrow(test_x$data), 1))
-  bike_data_train[,,1] = bike_data[, -fold_ind[[i]], ]
-  bike_data_test[,,1] = bike_data[, fold_ind[[i]], ]
+  # bike_data_train = array(dim = c(31, nrow(train_x$data), 1))
+  # bike_data_test = array(dim = c(31, nrow(test_x$data), 1))
+  # bike_data_train[,,1] = bike_data[, -fold_ind[[i]], ]
+  # bike_data_test[,,1] = bike_data[, fold_ind[[i]], ]
+  
+  # Setting up for FNN
+  pre_train = pre_dat$data[-fold_ind[[i]], ]
+  pre_test = pre_dat$data[fold_ind[[i]], ]
   
   ###################################
   # Running usual functional models #
@@ -100,6 +152,9 @@ for (i in 1:num_folds) {
   func_basis = fregre.basis.cv(train_x, train_y, type.basis = "fourier",
                                lambda=l, type.CV = GCV.S, par.CV = list(trim=0.15))
   pred_basis = predict(func_basis[[1]], test_x)
+  
+  # Pulling out the coefficients
+  flm_weights[[i]] = func_basis$fregre.basis$coefficients
   
   # Functional Principal Component Regression (No Penalty)
   func_pc = fregre.pc.cv(train_x, train_y, 8)
@@ -126,21 +181,39 @@ for (i in 1:num_folds) {
   pred_np = predict(func_np, test_x)
   
   ########################################
-  # Running Convolutional Neural Network #
+  # Neural Network Tuning Setup          #
   ########################################
+  
+  # Initializing
+  min_error_nn = 99999
+  min_error_cnn = 99999
+  min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(bike$temp[-fold_ind[[i]],])
   MV_test = as.data.frame(bike$temp[fold_ind[[i]],])
   
-  # Initializing
-  min_error = 99999
+  # Random Split
+  train_split = sample(1:nrow(MV_train), floor(0.5*nrow(MV_train)))
   
-  # random split
-  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  # Learn rates grid
+  num_initalizations = 1
+  
+  ########################################
+  # Running Convolutional Neural Network #
+  ########################################
+  
+  # Setting seeds
+  # set.seed(i)
+  # use_session_with_seed(
+  #   i,
+  #   disable_gpu = F,
+  #   disable_parallel_cpu = F,
+  #   quiet = T
+  # )
   
   # Setting up FNN model
-  for(u in 1:5){
+  for(u in 1:num_initalizations){
     
     # setting up model
     model_cnn <- keras_model_sequential()
@@ -150,18 +223,20 @@ for (i in 1:num_folds) {
       layer_max_pooling_1d(pool_size = 2) %>%
       layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
       layer_flatten() %>% 
-      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 64, activation = 'sigmoid') %>%
+      layer_dropout(rate = 0.5) %>% 
+      layer_dense(units = 64, activation = 'relu') %>%
       layer_dense(units = 1, activation = 'linear')
     
     # Setting parameters for NN model
     model_cnn %>% compile(
-      optimizer = optimizer_adam(lr = 0.02), 
+      optimizer = optimizer_adam(lr = 0.00005), 
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
     
     # Early stopping
-    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
     
     # Setting up data
     reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
@@ -169,13 +244,13 @@ for (i in 1:num_folds) {
     reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
     reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
     
-    # Training FNN model
-    model_cnn %>% fit(reshaped_data_tensor_train, 
-                     train_y[train_split], 
-                     epochs = 250,  
-                     validation_split = 0.15,
-                     callbacks = list(early_stop),
-                     verbose = 0)
+    # Training CNN model
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                      train_y[train_split], 
+                      epochs = 5000,  
+                      validation_split = 0.2,
+                      callbacks = list(early_stop),
+                      verbose = 0)
     
     # Predictions
     test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
@@ -184,7 +259,7 @@ for (i in 1:num_folds) {
     error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
     
     # Checking error
-    if(error_cnn_train < min_error){
+    if(error_cnn_train < min_error_cnn){
       
       # Setting up test data
       reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
@@ -193,11 +268,14 @@ for (i in 1:num_folds) {
       # Predictions
       pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
       
+      # Saving training plots
+      cnn_training_plot[[i]] = as.data.frame(history_cnn)
+      
       # Error
       error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
       
       # New Min Error
-      min_error = error_cnn_train
+      min_error_cnn = error_cnn_train
       
     }
     
@@ -207,40 +285,41 @@ for (i in 1:num_folds) {
   # Running Conventional Neural Network  #
   ########################################
   
-  # Setting up MV data
-  MV_train = as.data.frame(bike$temp[-fold_ind[[i]],])
-  MV_test = as.data.frame(bike$temp[fold_ind[[i]],])
-  
-  # Initializing
-  min_error = 99999
-  
-  # random split
-  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  # Setting seeds
+  # set.seed(i)
+  # use_session_with_seed(
+  #   i,
+  #   disable_gpu = F,
+  #   disable_parallel_cpu = F,
+  #   quiet = T
+  # )
   
   # Setting up FNN model
-  for(u in 1:5){
+  for(u in 1:num_initalizations){
     
     # setting up model
     model_nn <- keras_model_sequential()
     model_nn %>% 
-      layer_dense(units = 32, activation = 'relu') %>%
+      layer_dense(units = 64, activation = 'sigmoid') %>%
+      layer_dropout(rate = 0.5) %>%
+      layer_dense(units = 64, activation = 'relu') %>%
       layer_dense(units = 1, activation = 'linear')
     
     # Setting parameters for NN model
     model_nn %>% compile(
-      optimizer = optimizer_adam(lr = 0.002), 
+      optimizer = optimizer_adam(lr = 0.00005), 
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
     
     # Early stopping
-    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 15)
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
     
     # Training FNN model
-    model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
                      train_y[train_split], 
-                     epochs = 250,  
-                     validation_split = 0.15,
+                     epochs = 5000,  
+                     validation_split = 0.2,
                      callbacks = list(early_stop),
                      verbose = 0)
     
@@ -251,7 +330,7 @@ for (i in 1:num_folds) {
     error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
     
     # Checking error
-    if(error_nn_train < min_error){
+    if(error_nn_train < min_error_nn){
       
       # Predictions
       pred_nn <- model_nn %>% predict(as.matrix(MV_test))
@@ -259,8 +338,11 @@ for (i in 1:num_folds) {
       # Error
       error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
       
+      # Saving training plots
+      nn_training_plot[[i]] = as.data.frame(history_nn)
+      
       # New Min Error
-      min_error = error_nn_train
+      min_error_nn = error_nn_train
       
     }
     
@@ -270,37 +352,192 @@ for (i in 1:num_folds) {
   # Running Functional Neural Network #
   #####################################
   
-  # Running FNN for bike
-  bike_example <- FNN(resp = train_y, 
-                      func_cov = bike_data_train, 
-                      scalar_cov = NULL,
-                      basis_choice = c("fourier"), 
-                      num_basis = c(9),
-                      hidden_layers = 4,
-                      neurons_per_layer = c(32, 32, 32, 32),
-                      activations_in_layers = c("sigmoid", "sigmoid", "relu", "linear"),
-                      domain_range = list(c(1, 24)),
-                      epochs = 500,
-                      output_size = 1,
-                      loss_choice = "mse",
-                      metric_choice = list("mean_squared_error"),
-                      val_split = 0.15,
-                      learn_rate = 0.002,
-                      patience_param = 15,
-                      early_stop = T,
-                      print_info = F)
+  # Setting seeds
+  # set.seed(i)
+  # use_session_with_seed(
+  #   i,
+  #   disable_gpu = F,
+  #   disable_parallel_cpu = F,
+  #   quiet = T
+  # )
   
-  # Predicting
-  pred_fnn = FNN_Predict(bike_example,
-                          bike_data_test, 
-                          scalar_cov = NULL,
-                          basis_choice = c("fourier"), 
-                          num_basis = c(9),
-                          domain_range = list(c(1, 24)))
+  # Setting up FNN model
+  for(u in 1:num_initalizations){
+    
+    # setting up model
+    model_fnn <- keras_model_sequential()
+    model_fnn %>% 
+      # layer_dense(units = 1, activation = 'sigmoid') %>%
+      # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu",
+      #               input_shape = c(ncol(pre_train[train_split,]), 1)) %>%
+      # layer_max_pooling_1d(pool_size = 2) %>%
+      # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      # layer_flatten() %>%
+      layer_dense(units = 64, activation = 'sigmoid') %>%
+      layer_dropout(rate = 0.5) %>%
+      layer_dense(units = 64, activation = 'relu') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for FNN model
+    model_fnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.00005), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(pre_train[train_split,]), ncol(pre_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(pre_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(pre_train[-train_split,]), ncol(pre_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(pre_train[-train_split,])
+    
+    # Training FNN model
+    # history_fnn <- model_fnn %>% fit(reshaped_data_tensor_train,
+    #                  train_y[train_split],
+    #                  epochs = 5000,
+    #                  validation_split = 0.2,
+    #                  callbacks = list(early_stop),
+    #                  verbose = 0)
+    
+    # Training FNN model
+    model_fnn %>% fit(pre_train[train_split,],
+                     train_y[train_split],
+                     epochs = 5000,
+                     validation_split = 0.2,
+                     callbacks = list(early_stop),
+                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_fnn %>% predict(pre_train[-train_split,])
+    # test_predictions <- model_fnn %>% predict(reshaped_data_tensor_test)
+    
+    # Storing
+    # error_fnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    error_fnn_train = mean((test_predictions - train_y[-train_split])^2, na.rm = T)
+    
+    # Checking error
+    if(error_fnn_train < min_error_fnn){
+      
+      # Setting up test data
+      # reshaped_data_tensor_test_final = array(dim = c(nrow(pre_test), ncol(pre_test), 1))
+      # reshaped_data_tensor_test_final[, , 1] = as.matrix(pre_test)
+      
+      # Predictions
+      pred_fnn <- model_fnn %>% predict(pre_test)
+      # pred_fnn <- model_fnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Error
+      error_fnn = mean((c(pred_fnn) - test_y)^2, na.rm = T)
+      
+      # Saving training plots
+      fnn_training_plot[[i]] = as.data.frame(history_fnn)
+      
+      # New Min Error
+      min_error_fnn = error_fnn_train
+      
+    }
+    
+  }
+  
+  # # Running FNN for bike
+  # bike_example <- FNN(resp = train_y, 
+  #                     func_cov = bike_data_train, 
+  #                     scalar_cov = NULL,
+  #                     basis_choice = c("fourier"), 
+  #                     num_basis = c(9),
+  #                     hidden_layers = 4,
+  #                     neurons_per_layer = c(32, 32, 32, 32),
+  #                     activations_in_layers = c("sigmoid", "sigmoid", "relu", "linear"),
+  #                     domain_range = list(c(1, 24)),
+  #                     epochs = 500,
+  #                     output_size = 1,
+  #                     loss_choice = "mse",
+  #                     metric_choice = list("mean_squared_error"),
+  #                     val_split = 0.15,
+  #                     learn_rate = 0.002,
+  #                     patience_param = 15,
+  #                     early_stop = T,
+  #                     print_info = F)
+  # 
+  # # Predicting
+  # pred_fnn = FNN_Predict(bike_example,
+  #                        bike_data_test, 
+  #                        scalar_cov = NULL,
+  #                        basis_choice = c("fourier"), 
+  #                        num_basis = c(9),
+  #                        domain_range = list(c(1, 24)))
+  
+  # for(u in 1:num_initalizations){
+  #   
+  #   # Getting subset data
+  #   bike_data_train_tune <- array(dim = c(31, length(train_split), 1))
+  #   bike_data_test_tune <- array(dim = c(31, nrow(MV_train) - length(train_split), 1))
+  #   bike_data_train_tune[,,1] = bike_data_train[, train_split, ]
+  #   bike_data_test_tune[,,1] = bike_data_train[, -train_split, ]
+  #   
+  #   # Running FNN for bike
+  #   fnn_example = FNN(resp = train_y[train_split], 
+  #                     func_cov = bike_data_train_tune, 
+  #                     scalar_cov = NULL,
+  #                     basis_choice = c("fourier"), 
+  #                     num_basis = c(5),
+  #                     hidden_layers = 2,
+  #                     neurons_per_layer = c(32, 32),
+  #                     activations_in_layers = c("sigmoid", "relu"),
+  #                     domain_range = list(c(1, 24)),
+  #                     epochs = 500,
+  #                     output_size = 1,
+  #                     loss_choice = "mse",
+  #                     metric_choice = list("mean_squared_error"),
+  #                     val_split = 0.15,
+  #                     learn_rate = 0.002,
+  #                     patience_param = 15,
+  #                     early_stop = T,
+  #                     print_info = F)
+  #   
+  #   # Predicting using FNN for bike
+  #   pred_fnn = FNN_Predict(fnn_example,
+  #                          bike_data_test_tune, 
+  #                          scalar_cov = NULL,
+  #                          basis_choice = c("fourier"), 
+  #                          num_basis = c(5),
+  #                          domain_range = list(c(1, 24)))
+  #   
+  #   # Checking error
+  #   error_fnn_train = mean((pred_fnn - train_y[-train_split])^2, na.rm = T)
+  #   
+  #   # Checking error
+  #   if(error_fnn_train < min_error_fnn){
+  #     
+  #     # Predictions
+  #     pred_fnn <- FNN_Predict(fnn_example,
+  #                             bike_data_test, 
+  #                             scalar_cov = NULL,
+  #                             basis_choice = c("fourier"), 
+  #                             num_basis = c(5),
+  #                             domain_range = list(c(1, 24)))
+  #     
+  #     # Error
+  #     error_fnn = mean((c(pred_fnn) - test_y)^2, na.rm = T)
+  #     
+  #     # New Min Error
+  #     min_error_fnn = error_fnn_train
+  #     
+  #   }
+  #   
+  #   
+  # }
+  
   
   ###################
   # Storing Results #
   ###################
+  
+  # Storing weights
+  # func_weights[i,] = rowMeans(get_weights(model_fnn)[[1]])
   
   # MSPE Results
   error_mat_lm[i, 1] = mean((c(pred_basis) - test_y)^2, na.rm = T)
@@ -329,6 +566,9 @@ for (i in 1:num_folds) {
   # Printing iteration number
   print(paste0("Done Iteration: ", i))
   
+  # Clearning sessions
+  K$clear_session()
+  
 }
 
 # Initializing final table: average of errors
@@ -351,7 +591,102 @@ colnames(Final_Table_Bike) <- c("CV_MSPE", "R2", "SE")
 rownames(Final_Table_Bike) <- c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 Final_Table_Bike
 
-# Running t-tests
+# Training plots saving
+
+# Initializing plots
+training_plots_bike = list()
+
+# Looping
+for (i in 1:num_folds) {
+  
+  # count
+  a = 3*(i - 1)
+  
+  # Saving relevant
+  current_cnn = cnn_training_plot[[i]]
+  current_nn = nn_training_plot[[i]]
+  current_fnn = fnn_training_plot[[i]]
+  
+  # Filtering
+  current_cnn = current_cnn %>% dplyr::filter(metric == "loss" & data == "validation")
+  current_nn = current_nn %>% dplyr::filter(metric == "loss" & data == "validation")
+  current_fnn = current_fnn %>% dplyr::filter(metric == "loss" & data == "validation")
+  
+  # Creating plots
+  cnn_plot = current_cnn %>% 
+    ggplot(aes(x = epoch, y = value)) +
+    geom_line(size = 1.5,  color='red') + 
+    theme_bw() +
+    xlab("Epoch") +
+    ylab("Validation Loss") +
+    ggtitle(paste("Convolutional Neural Network; Fold: ", i)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text=element_text(size=12, face = "bold"),
+          axis.title=element_text(size=12,face="bold"))
+  
+  nn_plot = current_nn %>% 
+    ggplot(aes(x = epoch, y = value)) +
+    geom_line(size = 1.5, color='green') + 
+    theme_bw() +
+    xlab("Epoch") +
+    ylab("Validation Loss") +
+    ggtitle(paste("Conventional Neural Network; Fold: ", i)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text=element_text(size=12, face = "bold"),
+          axis.title=element_text(size=12,face="bold"))
+  
+  fnn_plot = current_cnn %>% 
+    ggplot(aes(x = epoch, y = value)) +
+    geom_line(size = 1.5, color='blue') + 
+    theme_bw() +
+    xlab("Epoch") +
+    ylab("Validation Loss") +
+    ggtitle(paste("Functional Neural Network; Fold: ", i)) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text=element_text(size=12, face = "bold"),
+          axis.title=element_text(size=12,face="bold"))
+  
+  
+  # Storing
+  training_plots_bike[[a + 1]] = cnn_plot
+  training_plots_bike[[a + 2]] = nn_plot
+  training_plots_bike[[a + 3]] = fnn_plot
+  
+  
+}
+
+# Final Plot
+n_plots <- length(training_plots_bike)
+nCol <- floor(sqrt(n_plots))
+do.call("grid.arrange", c(training_plots_bike, ncol = nCol))
+
+# Functional Weight Plot
+
+# Setting up data set
+beta_coef_fnn <- data.frame(time = seq(1, 24, 0.1), 
+                            beta_evals = beta_fnn_bike(seq(1, 24, 0.1), colMeans(func_weights)))
+
+# Plot
+beta_coef_fnn %>% 
+  ggplot(aes(x = time, y = beta_evals, color='blue')) +
+  geom_line(size = 1.5) + 
+  theme_bw() +
+  xlab("Time") +
+  ylab("beta(t)") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text=element_text(size=14, face = "bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  scale_colour_manual(name = 'Model: ', 
+                      values =c('blue'='blue'), 
+                      labels = c('Functional Neural Network')) +
+  theme(legend.background = element_rect(fill="lightblue",
+                                         size=0.5, linetype="solid", 
+                                         colour ="darkblue"),
+        legend.position = "bottom",
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12))
+
+# Running paired t-tests
 
 # Creating data frame
 t_test_df = cbind(error_mat_lm[, 1],
@@ -366,16 +701,36 @@ t_test_df = cbind(error_mat_lm[, 1],
                   error_mat_fnn[, 1])
 
 # Initializing
-p_value_df = matrix(nrow = ncol(t_test_df), ncol = ncol(t_test_df))
-colnames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
+p_value_df = matrix(nrow = ncol(t_test_df), ncol = 1)
 rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 
 # Getting p-values
 for(i in 1:ncol(t_test_df)) {
-  for(j in 1:ncol(t_test_df)) {
-    test_results = t.test(t_test_df[, i], t_test_df[, j], var.equal = F)
-    p_value_df[i, j] = test_results$p.value
-  }
+  
+  # Selecting data sets
+  FNN_ttest = t_test_df[, 10]
+  Other_ttest = t_test_df[, i]
+  
+  # Calculating difference
+  d = FNN_ttest - Other_ttest
+  
+  # Mean difference
+  mean_d = mean(d)
+
+  # SE
+  se_d = sd(d)/sqrt(length(FNN_ttest))
+  
+  # T value
+  T_value = mean_d/se_d
+  
+  # df
+  df_val = length(FNN_ttest) - 1
+  
+  # p-value
+  p_value = pt(abs(T_value), df_val, lower.tail = F)
+
+  # Storing
+  p_value_df[i, 1] = p_value
 }
 
 # Check 1

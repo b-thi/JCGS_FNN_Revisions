@@ -14,15 +14,299 @@ library(ggplot2)
 library(ggpubr)
 library(caret)
 library(pbapply)
+library(fda.usc)
+library(gridExtra)
 
 # Setting up environment
-# library(reticulate)
-# use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
-# use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+library(reticulate)
+use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
 
 # require(devtools)
 # install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
 # install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
+
+# (0)
+
+# First Layer Function
+FNN_First_Layer <- function(func_cov, 
+                            scalar_cov = NULL,
+                            basis_choice, 
+                            num_basis,
+                            domain_range,
+                            covariate_scaling = T,
+                            raw_data = F){
+  
+  #### Error Checks
+  
+  if(length(domain_range) != length(num_basis)){
+    stop("The number of domain ranges doesn't match length of num_basis")
+  }
+  
+  if(length(domain_range) != length(basis_choice)){
+    stop("The number of domain ranges doesn't match number of basis choices")
+  }
+  
+  if(length(num_basis) != length(basis_choice)){
+    stop("Too many/few num_basis - doesn't match number of basis choices")
+  }
+  
+  # Getting check for raw vs. non raw
+  if(raw_data == T){
+    dim_check = length(func_cov)
+  } else {
+    dim_check = dim(func_cov)[3]
+  }
+  
+  if(dim_check > length(num_basis)){
+    
+    # Fixing domain range
+    domain_range_list = list()
+    
+    for (t in 1:dim_check) {
+      
+      domain_range_list[[t]] = domain_range[[1]]
+      
+    }
+    
+    # Fixing num basis
+    num_basis = rep(num_basis, dim_check)
+    
+    # Fixing basis type
+    basis_choice = rep(basis_choice, dim_check)
+    
+    # Final update to domain range
+    domain_range = domain_range_list
+    
+    # Warning
+    print("Warning: You only specified basis information for one functional covariate -- it will be repeated for all functional covariates")
+    
+  }
+  
+  #### Creating functional observations in the case of raw data
+  if(raw_data == T){
+    
+    # Taking in data
+    dat = func_cov
+    
+    # Setting up array
+    temp_tensor = array(dim = c(31, nrow(dat[[1]]), length(dat)))
+    
+    for (t in 1:length(dat)) {
+      
+      # Getting appropriate obs
+      curr_func = dat[[t]]
+      
+      # Getting current domain
+      curr_domain = domain_range[[t]]
+      
+      # Creating basis (using bspline)
+      basis_setup = create.bspline.basis(rangeval = c(curr_domain[1], curr_domain[2]),
+                                         nbasis = 31,
+                                         norder = 4)
+      
+      # Time points
+      time_points = seq(curr_domain[1], curr_domain[2], length.out = ncol(curr_func))
+      
+      # Making functional observation
+      temp_fd = Data2fd(time_points, t(curr_func), basis_setup)
+      
+      # Storing data
+      temp_tensor[,,t] = temp_fd$coefs
+      
+    }
+    
+    # Saving as appropriate names
+    func_cov = temp_tensor
+    
+  }
+  
+  ##### Helper Functions #####
+  
+  # Composite approximator
+  composite_approximator <- function(f, a, b, n) {
+    
+    # This function does the integral approximations and gets called in the
+    # integral approximator function. In the integral approximator function
+    # we pass in a function f into this and that is final output - a collection
+    # of numbers - one for each of the functional observations
+    
+    # Error checking code
+    if (is.function(f) == FALSE) {
+      stop('The input f(x) must be a function with one parameter (variable)')
+    }
+    
+    # General formula
+    h <- (b - a)/n
+    
+    # Setting parameters
+    xn <- seq.int(a, b, length.out = n + 1)
+    xn <- xn[-1]
+    xn <- xn[-length(xn)]
+    
+    # Approximating using the composite rule formula
+    integ_approx <- (h/3)*(f(a) + 2*sum(f(xn[seq.int(2, length(xn), 2)])) + 
+                             4*sum(f(xn[seq.int(1, length(xn), 2)])) + 
+                             f(b))
+    
+    # Returning result
+    return(integ_approx)
+    
+  }
+  
+  # Integration Approximation for fourier and b-spline
+  integral_form_fourier <- function(functional_data, 
+                                    beta_basis = NULL, 
+                                    num_fd_basis = dim(func_cov)[1], 
+                                    num_beta_basis,
+                                    range){
+    
+    ########################################################################
+    
+    #### Setting up x_i(s) form ####
+    
+    # Initializing
+    func_basis_sin <- c()
+    func_basis_cos <- c()
+    
+    # Setting up vectors
+    for (i in 1:((num_fd_basis - 1)/2)) {
+      func_basis_sin[i] <- paste0("sin(2*pi*x*", i, "/", range[2], ")")
+    }
+    for (i in 1:((num_fd_basis - 1)/2)) {
+      func_basis_cos[i] <- paste0("cos(2*pi*x*", i, "/", range[2], ")")
+    }
+    
+    # Putting together
+    fd_basis_form <- c(1, rbind(func_basis_sin, func_basis_cos))
+    
+    # Combining with functional data
+    x_1s <- paste0(functional_data, "*", fd_basis_form, collapse = " + ")
+    
+    ########################################################################
+    
+    #### Setting up beta_(s) ####
+    
+    beta_basis_sin <- c()
+    beta_basis_cos <- c()
+    
+    # Setting up vectors
+    for (i in 1:((num_beta_basis - 1)/2)) {
+      beta_basis_sin[i] <- paste0("sin(2*pi*x*", i, "/", range[2], ")")
+    }
+    for (i in 1:((num_beta_basis - 1)/2)) {
+      beta_basis_cos[i] <- paste0("cos(2*pi*x*", i, "/", range[2], ")")
+    }
+    
+    # Combining with functional data
+    beta_basis_form <- c(1, rbind(beta_basis_sin, beta_basis_cos))
+    
+    ########################################################################
+    
+    #### Getting approximations ####
+    
+    # Initializing - should be vector of size 11
+    integ_approximations <- c()
+    
+    for (i in 1:length(beta_basis_form)) {
+      
+      # Combining
+      form_approximated <- paste0(beta_basis_form[i], "*(", x_1s, ")")
+      
+      # Passing to appropriate form
+      final_func <- function(x){
+        a = eval(parse(text = form_approximated))
+        return(a)
+      }
+      
+      # Evaluating
+      integ_approximations[i] <- composite_approximator(final_func, range[1], range[2], 5000)
+    }
+    
+    return(integ_approximations)
+    
+  }
+  
+  integral_form_bspline <- function(functional_data, 
+                                    beta_basis = NULL, 
+                                    num_fd_basis = dim(func_cov)[1], 
+                                    num_beta_basis){
+    
+  }
+  
+  if(is.null(scalar_cov)){
+    converted_df <- data.frame(matrix(nrow = dim(func_cov)[2],
+                                      ncol = sum(num_basis)))
+  } else {
+    converted_df <- data.frame(matrix(nrow = dim(func_cov)[2],
+                                      ncol = sum(num_basis) + ncol(scalar_cov)))
+  }
+  
+  # Looping to get approximations
+  for (i in 1:dim(func_cov)[3]) {
+    
+    # Current data set
+    df <- func_cov[,,i]
+    
+    # Turning into matrix
+    if(is.vector(df) == T){
+      test_mat = matrix(nrow = length(df), ncol = 1)
+      test_mat[,1] = df
+      df = test_mat
+    }
+    
+    # Current number of basis and choice of basis information
+    cur_basis_num <- num_basis[i]
+    cur_basis <- basis_choice[i]
+    
+    # Getting current range
+    cur_range <- domain_range[[i]]
+    
+    # Storing previous numbers
+    if(i == 1){
+      left_end = 1
+      right_end = cur_basis_num
+    } else {
+      left_end = sum(num_basis[1:(i - 1)]) + 1
+      right_end = (left_end - 1) + cur_basis_num
+    }
+    
+    if(cur_basis == "fourier"){
+      for (j in 1:ncol(df)) {
+        converted_df[j, left_end:right_end] <- c(integral_form_fourier(df[,j], 
+                                                                       num_beta_basis = cur_basis_num,
+                                                                       range = cur_range))
+      }
+    } else{
+      
+    }
+    
+  }
+  
+  # Now attaching scalar covariates
+  if(is.null(scalar_cov)){
+    converted_df <- converted_df
+  } else{
+    for (k in 1:nrow(converted_df)) {
+      converted_df[k, (sum(num_basis) + 1):(sum(num_basis) + ncol(scalar_cov))] <- scalar_cov[k,]
+    }
+  }
+  
+  # Normalize training data
+  if(covariate_scaling == T){
+    train_x <- scale(converted_df)
+  } else {
+    train_x <- as.matrix(cbind(converted_df[,c(1:sum(num_basis))], scale(converted_df[,-c(1:sum(num_basis))])))
+  }
+  
+  # Returning the model
+  return(list(data = train_x,
+              raw_data = converted_df,
+              fnc_basis_num = num_basis,
+              fnc_type = basis_choice,
+              func_obs = func_cov)
+  )
+}
 
 # (1) FNN Function
 
@@ -1181,7 +1465,8 @@ beta_fnn_bike <- function(x, c){
   value <- c[1] + c[2]*sin(1*2*pi*x/24) + c[3]*cos(1*2*pi*x/24) 
     c[4]*sin(2*2*pi*x/24) + c[5]*cos(2*2*pi*x/24) + c[6]*sin(3*2*pi*x/24) +
     c[7]*cos(3*2*pi*x/24) + c[8]*sin(4*2*pi*x/24) + c[9]*cos(4*2*pi*x/24) +
-    c[10]*sin(5*2*pi*x/24) + c[11]*cos(5*2*pi*x/24)
+    c[10]*sin(5*2*pi*x/24) + c[11]*cos(5*2*pi*x/24) + c[12]*sin(6*2*pi*x/24) + c[13]*cos(6*2*pi*x/24) +
+      c[14]*sin(7*2*pi*x/24) + c[15]*cos(7*2*pi*x/24) 
   return(value)
 }
 

@@ -1,9 +1,8 @@
-##################################################
-#############  Simulation Study    ############
-#### Functional Neural Networks ##################
-##################################################
-
-###### MAIN CODE #######
+##############################
+#                            #
+# FNN Simulations - Final    #
+#                            #
+##############################
 
 ##### Libraries #####
 library(fda)
@@ -24,6 +23,58 @@ library(FinCal)
 library(reshape2)
 library(grid)
 source("FNN.R")
+
+##############################
+# Data Information:
+#
+# Sim Data Set 1 [Identity]
+# Observations: 
+# Continuum Points: 
+# Domain: 
+# Basis Functions used for Functional Observations: 
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+
+# Sim Data Set 2 [Exponential]
+# Observations: 
+# Continuum Points: 
+# Domain: 
+# Basis Functions used for Functional Observations: 
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+
+# Sim Data Set 3 [Sigmoidal]
+# Observations: 
+# Continuum Points: 
+# Domain: 
+# Basis Functions used for Functional Observations: 
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+
+# Sim Data Set 4 [Log]
+# Observations: 
+# Continuum Points: 
+# Domain: 
+# Basis Functions used for Functional Observations: 
+# Range of Response: [a, b]
+# Basis Functions used for Functional Weights: 
+# Folds Used: 
+# Parameter Count in FNN:
+# Parameter Count in CNN:
+# Parameter Count in NN:
+##############################
 
 #############################################################
 # 1 - Identity 

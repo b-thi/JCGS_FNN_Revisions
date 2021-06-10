@@ -1,5 +1,21 @@
+##############################
+#                            #
+# Ablation Studies - Final   #
+#                            #
+##############################
+
+##############################
+# Data Information:
+#
+# Bike Data Set
+# Observations: 102
+# Continuum Points: 24
+# Domain: [1, 24]
+# Basis Functions used for Functional Observations: 31
+# Range of Response: [a, b]
+##############################
+
 # Libraries
-library(fda.usc)
 source("FNN.R")
 
 # Loading data
@@ -33,6 +49,9 @@ bike_data[,,1] = func_cov_1
 # fData Object
 bike_fdata = fdata(bike$temp, argvals = 1:24, rangeval = c(1, 24))
 
+# Overall Initialization
+abalation_plots <- list()
+
 ##############################################################################
 
 ### Changing number of basis functions ###
@@ -55,8 +74,8 @@ for (i in 1:length(basis_count_try)) {
     quiet = T
   )
 
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -122,12 +141,13 @@ for (i in 1:length(basis_count_try)) {
 }
 
 # Plotting
-basis_abalation_df %>% 
+abalation_plots[[1]] = basis_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='blue') +
   geom_point(size = 1.5, color = "blue") +
   theme_bw() +
   xlab("Number of Basis Functions") +
   ylab("MSPE") +
+  ggtitle("Functional Weight Basis Count Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
@@ -152,8 +172,8 @@ for (i in 1:length(learn_rate_try)) {
     quiet = T
   )
   
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -219,12 +239,13 @@ for (i in 1:length(learn_rate_try)) {
 }
 
 # Plotting
-learnrate_abalation_df %>% 
+abalation_plots[[2]] = learnrate_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='red') +
   geom_point(size = 1.5, color = "red") +
   theme_bw() +
   xlab("Learn Rate") +
   ylab("MSPE") +
+  ggtitle("Learn Rate Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
@@ -249,8 +270,8 @@ for (i in 1:length(val_split_try)) {
     quiet = T
   )
   
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -316,12 +337,13 @@ for (i in 1:length(val_split_try)) {
 }
 
 # Plotting
-valsplit_abalation_df %>% 
+abalation_plots[[3]] = valsplit_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='green') +
   geom_point(size = 1.5, color = "green") +
   theme_bw() +
   xlab("Validation Split") +
   ylab("MSPE") +
+  ggtitle("Validation Split Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
@@ -329,7 +351,7 @@ valsplit_abalation_df %>%
 ### Changing number of epochs ###
 
 # vector of epochs
-epochs_try = seq(from = 10, to = 500, length.out = 50)
+epochs_try = seq(from = 10, to = 5000, length.out = 50)
 
 # initializing
 epochs_abalation_df = data.frame(value = NA, mspe = NA)
@@ -346,8 +368,8 @@ for (i in 1:length(epochs_try)) {
     quiet = T
   )
   
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -381,7 +403,7 @@ for (i in 1:length(epochs_try)) {
                     loss_choice = "mse",
                     metric_choice = list("mean_squared_error"),
                     val_split = 0.15,
-                    learn_rate = 0.15,
+                    learn_rate = 0.0005,
                     patience_param = 15,
                     early_stop = F,
                     print_info = F)
@@ -413,12 +435,13 @@ for (i in 1:length(epochs_try)) {
 }
 
 # Plotting
-epochs_abalation_df %>% 
+abalation_plots[[4]] = epochs_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='purple') +
   geom_point(size = 1.5, color = "purple") +
   theme_bw() +
   xlab("Epochs") +
   ylab("MSPE") +
+  ggtitle("Epochs Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
@@ -443,8 +466,8 @@ for (i in 1:length(neurons_try)) {
     quiet = T
   )
   
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -510,12 +533,13 @@ for (i in 1:length(neurons_try)) {
 }
 
 # Plotting
-neurons_abalation_df %>% 
+abalation_plots[[5]] = neurons_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='orange') +
   geom_point(size = 1.5, color = "orange") +
   theme_bw() +
   xlab("Neurons") +
   ylab("MSPE") +
+  ggtitle("Neuron Count Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
@@ -540,8 +564,8 @@ for (i in 1:length(decay_rate_try)) {
     quiet = T
   )
   
-  # Creating folds (90/10 split)
-  num_folds = 10
+  # Creating folds (50/50 split)
+  num_folds = 2
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -608,13 +632,20 @@ for (i in 1:length(decay_rate_try)) {
 }
 
 # Plotting
-decayrate_abalation_df %>% 
+abalation_plots[[6]] = decayrate_abalation_df %>% 
   ggplot(aes(x = value, y = mspe), color='pink') +
   geom_point(size = 1.5, color = "pink") +
   theme_bw() +
   xlab("Decay Rate") +
   ylab("MSPE") +
+  ggtitle("Decay Rate Grid Study") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold"))
+
+
+# Final Plot
+n_plots <- length(abalation_plots)
+nCol <- floor(sqrt(n_plots))
+do.call("grid.arrange", c(abalation_plots, ncol = nCol))
 
