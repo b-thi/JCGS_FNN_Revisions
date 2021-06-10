@@ -50,7 +50,7 @@ bike_data[,,1] = func_cov_1
 bike_fdata = fdata(bike$temp, argvals = 1:24, rangeval = c(1, 24))
 
 # Overall Initialization
-abalation_plots <- list()
+ablation_plots <- list()
 
 ##############################################################################
 
@@ -60,7 +60,7 @@ abalation_plots <- list()
 basis_count_try = seq(from = 3, to = 101, by = 2)
 
 # initializing
-basis_abalation_df = data.frame(value = NA, mspe = NA)
+basis_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(basis_count_try)) {
@@ -133,7 +133,7 @@ for (i in 1:length(basis_count_try)) {
   
   
   # Storing
-  basis_abalation_df[i, ] = c(basis_count_try[i], mean(fnn_mspe))
+  basis_ablation_df[i, ] = c(basis_count_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -141,8 +141,8 @@ for (i in 1:length(basis_count_try)) {
 }
 
 # Plotting
-abalation_plots[[1]] = basis_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='blue') +
+ablation_plots[[1]] = basis_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "blue") +
   theme_bw() +
   xlab("Number of Basis Functions") +
@@ -158,7 +158,7 @@ abalation_plots[[1]] = basis_abalation_df %>%
 learn_rate_try = seq(from = 0.0001, to = 1, length.out = 50)
 
 # initializing
-learnrate_abalation_df = data.frame(value = NA, mspe = NA)
+learnrate_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(learn_rate_try)) {
@@ -231,7 +231,7 @@ for (i in 1:length(learn_rate_try)) {
   
   
   # Storing
-  learnrate_abalation_df[i, ] = c(learn_rate_try[i], mean(fnn_mspe))
+  learnrate_ablation_df[i, ] = c(learn_rate_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -239,8 +239,8 @@ for (i in 1:length(learn_rate_try)) {
 }
 
 # Plotting
-abalation_plots[[2]] = learnrate_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='red') +
+ablation_plots[[2]] = learnrate_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "red") +
   theme_bw() +
   xlab("Learn Rate") +
@@ -256,7 +256,7 @@ abalation_plots[[2]] = learnrate_abalation_df %>%
 val_split_try = seq(from = 0.05, to = 0.5, length.out = 10)
 
 # initializing
-valsplit_abalation_df = data.frame(value = NA, mspe = NA)
+valsplit_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(val_split_try)) {
@@ -329,7 +329,7 @@ for (i in 1:length(val_split_try)) {
   
   
   # Storing
-  valsplit_abalation_df[i, ] = c(val_split_try[i], mean(fnn_mspe))
+  valsplit_ablation_df[i, ] = c(val_split_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -337,8 +337,8 @@ for (i in 1:length(val_split_try)) {
 }
 
 # Plotting
-abalation_plots[[3]] = valsplit_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='green') +
+ablation_plots[[3]] = valsplit_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "green") +
   theme_bw() +
   xlab("Validation Split") +
@@ -354,7 +354,7 @@ abalation_plots[[3]] = valsplit_abalation_df %>%
 epochs_try = seq(from = 10, to = 5000, length.out = 50)
 
 # initializing
-epochs_abalation_df = data.frame(value = NA, mspe = NA)
+epochs_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(epochs_try)) {
@@ -427,7 +427,7 @@ for (i in 1:length(epochs_try)) {
   
   
   # Storing
-  epochs_abalation_df[i, ] = c(epochs_try[i], mean(fnn_mspe))
+  epochs_ablation_df[i, ] = c(epochs_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -435,8 +435,8 @@ for (i in 1:length(epochs_try)) {
 }
 
 # Plotting
-abalation_plots[[4]] = epochs_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='purple') +
+ablation_plots[[4]] = epochs_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "purple") +
   theme_bw() +
   xlab("Epochs") +
@@ -452,7 +452,7 @@ abalation_plots[[4]] = epochs_abalation_df %>%
 neurons_try = seq(from = 8, to = 256, length.out = 50)
 
 # initializing
-neurons_abalation_df = data.frame(value = NA, mspe = NA)
+neurons_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(neurons_try)) {
@@ -525,7 +525,7 @@ for (i in 1:length(neurons_try)) {
   
   
   # Storing
-  neurons_abalation_df[i, ] = c(neurons_try[i], mean(fnn_mspe))
+  neurons_ablation_df[i, ] = c(neurons_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -533,8 +533,8 @@ for (i in 1:length(neurons_try)) {
 }
 
 # Plotting
-abalation_plots[[5]] = neurons_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='orange') +
+ablation_plots[[5]] = neurons_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "orange") +
   theme_bw() +
   xlab("Neurons") +
@@ -550,7 +550,7 @@ abalation_plots[[5]] = neurons_abalation_df %>%
 decay_rate_try = seq(from = 0, to = 1, length.out = 50)
 
 # initializing
-decayrate_abalation_df = data.frame(value = NA, mspe = NA)
+decayrate_ablation_df = data.frame(value = NA, mspe = NA)
 
 # looping
 for (i in 1:length(decay_rate_try)) {
@@ -624,7 +624,7 @@ for (i in 1:length(decay_rate_try)) {
 
   
   # Storing
-  decayrate_abalation_df[i, ] = c(decay_rate_try[i], mean(fnn_mspe))
+  decayrate_ablation_df[i, ] = c(decay_rate_try[i], mean(fnn_mspe))
   
   # Print iterations done
   print(paste("Overall Iterations Done: ", i))
@@ -632,8 +632,8 @@ for (i in 1:length(decay_rate_try)) {
 }
 
 # Plotting
-abalation_plots[[6]] = decayrate_abalation_df %>% 
-  ggplot(aes(x = value, y = mspe), color='pink') +
+ablation_plots[[6]] = decayrate_ablation_df %>% 
+  ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "pink") +
   theme_bw() +
   xlab("Decay Rate") +
@@ -645,7 +645,7 @@ abalation_plots[[6]] = decayrate_abalation_df %>%
 
 
 # Final Plot
-n_plots <- length(abalation_plots)
+n_plots <- length(ablation_plots)
 nCol <- floor(sqrt(n_plots))
-do.call("grid.arrange", c(abalation_plots, ncol = nCol))
+do.call("grid.arrange", c(ablation_plots, ncol = nCol))
 
