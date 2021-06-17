@@ -8,23 +8,23 @@
 # Data Information:
 #
 # Tecator Data Set
-# Observations: 
-# Continuum Points: 
-# Domain: 
-# Basis Functions used for Functional Observations: 
-# Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
-# Folds Used: 
-# Parameter Count in FNN:
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Observations: 215
+# Continuum Points: 100
+# Continuum Domain: [850, 1050]
+# Basis Functions used for Functional Observations: 29, Fourier
+# Range of Response: [0.9, 49.1]
+# Basis Functions used for Functional Weights: 3
+# Folds Used: Compared with another paper (only test/train split)
+# Parameter Count in FNN: 4029
+# Parameter Count in CNN: 87045
+# Parameter Count in NN: 5757
 ##############################
 
 # Source for FNN
 source("FNN.R")
 
 # Loading data
-tecator = readRDS("tecator.RDS")
+tecator = readRDS("Data/tecator.RDS")
 
 # Clearing backend
 K <- backend()
@@ -104,8 +104,229 @@ pred_tec = FNN_Predict(tecator_comp,
                        domain_range = list(c(850, 1050)))
 
 # Getting back results
-MEP = mean(((pred_tec - tecResp_test)^2))/var(tecResp_test)
-Rsquared = sum((pred_tec - mean(tecResp_test))^2)/sum((tecResp_test - mean(tecResp_test))^2)
+MEP_FNN = mean(((pred_tec - tecResp_test)^2))/var(tecResp_test)
+Rsquared_FNN = 1 - sum((pred_tec - tecResp_test)^2)/sum((tecResp_test - mean(tecResp_test))^2)
+
+### NN Set Up ###
+
+# Initializing
+min_error_nn = 99999
+min_error_cnn = 99999
+nn_training_plot <- list()
+cnn_training_plot <- list()
+
+# Setting up MV data
+MV_train = as.data.frame(cbind(as.data.frame((tecator$absorp.fdata$data)[ind,]), water = scalar_train))
+MV_test = as.data.frame(cbind(as.data.frame((tecator$absorp.fdata$data)[-ind,]), water = scalar_test))
+
+# Random Split
+train_split = sample(1:nrow(MV_train), floor(0.8*nrow(MV_train)))
+
+# Learn rates grid
+num_initalizations = 10
+i = 1
+
+### NN
+
+# Setting up FNN model
+for(u in 1:num_initalizations){
+  
+  # setting up model
+  model_nn <- keras_model_sequential()
+  model_nn %>% 
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 58, activation = 'relu') %>%
+    layer_dense(units = 1, activation = 'linear')
+  
+  # Setting parameters for NN model
+  model_nn %>% compile(
+    optimizer = optimizer_adam(lr = 0.005), 
+    loss = 'mse',
+    metrics = c('mean_squared_error')
+  )
+  
+  # Early stopping
+  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
+  
+  # Training FNN model
+  history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                                 tecResp_train[train_split], 
+                                 epochs = 3000,  
+                                 validation_split = 0.15,
+                                 callbacks = list(early_stop),
+                                 verbose = 0)
+  
+  # Predictions
+  test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+  
+  # Plotting
+  error_nn_train = mean((c(test_predictions) - tecResp_train[-train_split])^2)
+  
+  # Checking error
+  if(error_nn_train < min_error_nn){
+    
+    # Predictions
+    pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+    
+    # Error
+    MEP_NN = mean((c(pred_nn) - tecResp_test)^2, na.rm = T)/var(tecResp_test)
+    Rsquared_NN = 1 - sum((pred_nn - tecResp_test)^2)/sum((tecResp_test - mean(tecResp_test))^2)
+    
+    # Saving training plots
+    nn_training_plot[[i]] = as.data.frame(history_nn)
+    
+    # New Min Error
+    min_error_nn = error_nn_train
+    
+  }
+  
+}
+
+
+### CNN
+
+# Setting up FNN model
+for(u in 1:num_initalizations){
+  
+  # setting up model
+  model_cnn <- keras_model_sequential()
+  model_cnn %>% 
+    layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                  input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+    layer_max_pooling_1d(pool_size = 2) %>%
+    layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+    layer_flatten() %>% 
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 24, activation = 'relu') %>%
+    layer_dense(units = 58, activation = 'relu') %>%
+    layer_dense(units = 1, activation = 'linear')
+  
+  # Setting parameters for NN model
+  model_cnn %>% compile(
+    optimizer = optimizer_adam(lr = 0.005), 
+    loss = 'mse',
+    metrics = c('mean_squared_error')
+  )
+  
+  # Setting up data
+  reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+  reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+  reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+  reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+  
+  # Early stopping
+  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
+  
+  # Training CNN model
+  history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                                   tecResp_train[train_split], 
+                                   epochs = 3000,  
+                                   validation_split = 0.15,
+                                   callbacks = list(early_stop),
+                                   verbose = 0)
+  
+  # Predictions
+  test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+  
+  # Plotting
+  error_cnn_train = mean((c(test_predictions) - tecResp_train[-train_split])^2)
+  
+  # Checking error
+  if(error_cnn_train < min_error_cnn){
+    
+    # Setting up test data
+    reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+    reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+    
+    # Predictions
+    pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+    
+    # Saving training plots
+    cnn_training_plot[[i]] = as.data.frame(history_cnn)
+    
+    # Error
+    MEP_CNN = mean((c(pred_cnn) - tecResp_test)^2, na.rm = T)/var(tecResp_test)
+    Rsquared_CNN = 1 - sum((pred_cnn - tecResp_test)^2)/sum((tecResp_test - mean(tecResp_test))^2)
+    
+    # New Min Error
+    min_error_cnn = error_cnn_train
+    
+  }
+  
+}
+
+tecator_comp$per_iter_info$loss
+
+### Creating Training Plots ###
+
+# Saving relevant
+current_cnn = cnn_training_plot[[i]]
+current_nn = nn_training_plot[[i]]
+current_fnn = data.frame(epoch = 1:length(tecator_comp$per_iter_info$loss), value = tecator_comp$per_iter_info$loss)
+
+# Filtering
+current_cnn = current_cnn %>% dplyr::filter(metric == "loss" & data == "validation")
+current_nn = current_nn %>% dplyr::filter(metric == "loss" & data == "validation")
+
+cnn_plot = current_cnn %>% 
+  ggplot(aes(x = epoch, y = value)) +
+  geom_line(size = 1.5,  color='red') + 
+  theme_bw() +
+  xlab("Epoch") +
+  ylab("Validation Loss") +
+  xlim(c(0, 1000)) +
+  ggtitle(paste("Convolutional Neural Network; Tecator Example")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=12,face="bold"))
+
+nn_plot = current_nn %>% 
+  ggplot(aes(x = epoch, y = value)) +
+  geom_line(size = 1.5, color='green') + 
+  theme_bw() +
+  xlab("Epoch") +
+  ylab("Validation Loss") +
+  xlim(c(0, 1000)) +
+  ggtitle(paste("Conventional Neural Network; Tecator Example")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=12,face="bold"))
+
+fnn_plot = current_fnn %>% 
+  ggplot(aes(x = epoch, y = value)) +
+  geom_line(size = 1.5, color='blue') + 
+  theme_bw() +
+  xlab("Epoch") +
+  ylab("Validation Loss") +
+  xlim(c(0, 1000)) +
+  ggtitle(paste("Functional Neural Network;  Tecator Example")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=12,face="bold"))
+
+# Final Plot
+list_plots = list(cnn_plot, nn_plot, fnn_plot)
+n_plots <- length(list_plots)
+nCol <- floor(sqrt(n_plots))
+do.call("grid.arrange", c(list_plots, ncol = nCol)) # Saved as 10 x 13 PDF file
+
+### Creating Actual v. Predicted Plot
+# actual_v_predicted = ggplot(data = data.frame(pred_fnn = pred_tec, actual = tecResp_test), aes(x = pred_fnn, y = actual)) +
+#   theme_bw() +
+#   geom_smooth(aes(color = "blue"), color = "blue", se = F) +
+#   geom_smooth(data = data.frame(pred_nn = pred_nn[,1], actual = tecResp_test), aes(x = pred_nn, y = actual, color = "green"), color = "green", se = F) +
+#   geom_smooth(data = data.frame(pred_cnn = pred_cnn[,1], actual = tecResp_test), aes(x = pred_cnn, y = actual, color = "red"), color = "red", se = F) +
+#   ggtitle(paste("Actual v. Predicted Plots")) +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   theme(axis.text=element_text(size=12, face = "bold"),
+#         axis.title=element_text(size=12,face="bold")) +
+#   xlab("Predicted") +
+#   ylab("Actual")
 
 # Check 1
 # Check 2

@@ -11,12 +11,12 @@
 # Bike Data Set
 # Observations: 102
 # Continuum Points: 24
-# Continuum Domain: [1, 24]
-# Basis Functions used for Functional Observations: 31, Fourier
+# Domain: [1, 24]
+# Basis Functions used for Functional Observations: 31
 # Range of Response: [a, b]
 # Basis Functions used for Functional Weights: 
 # Folds Used: 10
-# Parameter Count in FNN: 
+# Parameter Count in FNN:
 # Parameter Count in CNN:
 # Parameter Count in NN:
 ##############################
@@ -39,7 +39,7 @@ use_session_with_seed(
 )
 
 # Loading data
-load("Data/bike.RData")
+load("bike.RData")
 
 # Obtaining response
 rentals = sqrt(bike$y)
@@ -635,7 +635,7 @@ for (i in 1:num_folds) {
     theme(axis.text=element_text(size=12, face = "bold"),
           axis.title=element_text(size=12,face="bold"))
   
-  fnn_plot = current_fnn %>% 
+  fnn_plot = current_cnn %>% 
     ggplot(aes(x = epoch, y = value)) +
     geom_line(size = 1.5, color='blue') + 
     theme_bw() +
@@ -701,8 +701,9 @@ t_test_df = cbind(error_mat_lm[, 1],
                   error_mat_fnn[, 1])
 
 # Initializing
-p_value_df = matrix(nrow = ncol(t_test_df), ncol = 1)
+p_value_df = matrix(nrow = ncol(t_test_df), ncol = 4)
 rownames(p_value_df) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
+colnames(p_value_df) = c("P Value", "T Value", "Lower Bound", "Upper Upper Bound")
 
 # Getting p-values
 for(i in 1:ncol(t_test_df)) {
@@ -731,6 +732,9 @@ for(i in 1:ncol(t_test_df)) {
 
   # Storing
   p_value_df[i, 1] = p_value
+  p_value_df[i, 2] = T_value
+  p_value_df[i, 3] = mean_d - T_value*se_d
+  p_value_df[i, 4] = mean_d + T_value*se_d
 }
 
 # Check 1

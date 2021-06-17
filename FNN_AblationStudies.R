@@ -22,7 +22,7 @@ source("FNN.R")
 load("bike.RData")
 
 # Obtaining response
-rentals = bike$y
+rentals = log10(bike$y)
 
 # define the time points on which the functional predictor is observed. 
 timepts = bike$timepts

@@ -11,52 +11,52 @@ source("FNN.R")
 # Data Information:
 #
 # Sim Data Set 1 [Identity]
-# Observations: 
-# Continuum Points: 
-# Domain: 
-# Basis Functions used for Functional Observations: 
+# Observations: 300
+# Continuum Points: 100
+# Domain: [0, 1]
+# Basis Functions used for Functional Observations: 5, Fourier
 # Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
-# Folds Used: 
-# Parameter Count in FNN:
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Basis Functions used for Functional Weights: 5
+# Folds Used: 100
+# Parameter Count in FNN: 657
+# Parameter Count in CNN: 58177
+# Parameter Count in NN: 2177
 
 # Sim Data Set 2 [Exponential]
-# Observations: 
-# Continuum Points: 
-# Domain: 
-# Basis Functions used for Functional Observations: 
+# Observations: 300
+# Continuum Points: 100
+# Domain: [0, 1]
+# Basis Functions used for Functional Observations: 5, Fourier
 # Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
-# Folds Used: 
-# Parameter Count in FNN:
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Basis Functions used for Functional Weights: 5
+# Folds Used: 100
+# Parameter Count in FNN: 657
+# Parameter Count in CNN: 58177
+# Parameter Count in NN: 2177
 
 # Sim Data Set 3 [Sigmoidal]
-# Observations: 
-# Continuum Points: 
-# Domain: 
-# Basis Functions used for Functional Observations: 
+# Observations: 300
+# Continuum Points: 100
+# Domain: [0, 1]
+# Basis Functions used for Functional Observations: 5, Fourier
 # Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
-# Folds Used: 
-# Parameter Count in FNN:
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Basis Functions used for Functional Weights: 5
+# Folds Used: 100
+# Parameter Count in FNN: 657
+# Parameter Count in CNN: 58177
+# Parameter Count in NN: 2177
 
 # Sim Data Set 4 [Log]
-# Observations: 
-# Continuum Points: 
-# Domain: 
-# Basis Functions used for Functional Observations: 
+# Observations: 300
+# Continuum Points: 100
+# Domain: [0, 1]
+# Basis Functions used for Functional Observations: 5, Fourier
 # Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
-# Folds Used: 
-# Parameter Count in FNN:
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Basis Functions used for Functional Weights: 5
+# Folds Used: 100
+# Parameter Count in FNN: 657
+# Parameter Count in CNN: 58177
+# Parameter Count in NN: 2177
 ##############################
 
 #############################################################
@@ -81,7 +81,7 @@ use_session_with_seed(
 beta_coef = runif(5, min = 0, max = 2)
 
 # Number of sims
-sim_num = 5
+sim_num = 100
 
 # Initializing matrices for results
 error_mat_lm_1 = matrix(nrow = sim_num, ncol = 1)
@@ -91,6 +91,8 @@ error_mat_pc3_1 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls1_1 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls2_1 = matrix(nrow = sim_num, ncol = 1)
 error_mat_np_1 = matrix(nrow = sim_num, ncol = 1)
+error_mat_cnn_1 = matrix(nrow = sim_num, ncol = 1)
+error_mat_nn_1 = matrix(nrow = sim_num, ncol = 1)
 error_mat_fnn_1 = matrix(nrow = sim_num, ncol = 1)
 error_mat_lm1_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_lassoMin1_nf = matrix(nrow = sim_num, ncol = 1)
@@ -100,6 +102,9 @@ error_mat_GBM1_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_PPR1_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_MARS1_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_XGB1_nf = matrix(nrow = sim_num, ncol = 1)
+# nn_training_plot <- list()
+# cnn_training_plot <- list()
+# fnn_training_plot <- list()
 
 # Looping to get results
 for (u in 1:sim_num) {
@@ -109,7 +114,7 @@ for (u in 1:sim_num) {
   ##################
   
   # Testing
-  # u = 1
+  u = 1
   
   # Generating data for each of observations
   sim_data <- matrix(nrow = 300, ncol = 100)
@@ -510,13 +515,155 @@ for (u in 1:sim_num) {
   prediction_xgb <- predict(xgb_model, newdata = test_x)
   MSPE_xgb <- mean((test_y - prediction_xgb)^2, na.rm = T)
   
-  #######################################
-  # Running Conventional Neural Network #
-  #######################################
+  ########################################
+  # Neural Network Tuning Setup          #
+  ########################################
+  
+  # Initializing
+  min_error_nn = 99999
+  min_error_cnn = 99999
+  # min_error_fnn = 99999
+  
+  # Setting up MV data
+  MV_train = as.data.frame(sim_data[-ind,])
+  MV_test = as.data.frame(sim_data[ind,])
+  
+  # Random Split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Learn rates grid
+  num_initalizations = 10
   
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting up CNN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training CNN model
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                                     train_y[train_split], 
+                                     epochs = 250,  
+                                     validation_split = 0.2,
+                                     callbacks = list(early_stop),
+                                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error_cnn){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Saving training plots
+      # cnn_training_plot[[i]] = as.data.frame(history_cnn)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error_cnn = error_cnn_train
+      
+    }
+    
+  }
+  
+  ########################################
+  # Running Conventional Neural Network #
+  ########################################
+  
+  # Setting up NN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Training FNN model
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                                   train_y[train_split], 
+                                   epochs = 250,  
+                                   validation_split = 0.2,
+                                   callbacks = list(early_stop),
+                                   verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error_nn){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # Saving training plots
+      # nn_training_plot[[i]] = as.data.frame(history_nn)
+      
+      # New Min Error
+      min_error_nn = error_nn_train
+      
+    }
+    
+  }
   
   
   #####################################
@@ -570,6 +717,8 @@ for (u in 1:sim_num) {
   error_mat_pls1_1[u, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2_1[u, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np_1[u, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn_1[u, 1] = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+  error_mat_nn_1[u, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn_1[u, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   error_mat_lm1_nf[u, 1] = mean((pred_lm - test_y)^2, na.rm = T)
   error_mat_lassoMin1_nf[u, 1] = mean((y.2 - predict_lasso_min_mspe)^2, na.rm = T)
@@ -590,7 +739,7 @@ for (u in 1:sim_num) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Sim1 = matrix(nrow = 16, ncol = 2)
+Final_Table_Sim1 = matrix(nrow = 18, ncol = 2)
 
 # Collecting errors
 Final_Table_Sim1[1, 1] = colMeans(error_mat_lm_1, na.rm = T)
@@ -600,15 +749,17 @@ Final_Table_Sim1[4, 1] = colMeans(error_mat_pc2_1, na.rm = T)
 Final_Table_Sim1[5, 1] = colMeans(error_mat_pc3_1, na.rm = T)
 Final_Table_Sim1[6, 1] = colMeans(error_mat_pls1_1, na.rm = T)
 Final_Table_Sim1[7, 1] = colMeans(error_mat_pls2_1, na.rm = T)
-Final_Table_Sim1[8, 1] = colMeans(error_mat_fnn_1, na.rm = T)
-Final_Table_Sim1[9, 1] = colMeans(error_mat_lm1_nf, na.rm = T)
-Final_Table_Sim1[10, 1] = colMeans(error_mat_lassoMin1_nf, na.rm = T)
-Final_Table_Sim1[11, 1] = colMeans(error_mat_lasso1se1_nf, na.rm = T)
-Final_Table_Sim1[12, 1] = colMeans(error_mat_RF1_nf, na.rm = T)
-Final_Table_Sim1[13, 1] = colMeans(error_mat_GBM1_nf, na.rm = T)
-Final_Table_Sim1[14, 1] = colMeans(error_mat_PPR1_nf, na.rm = T)
-Final_Table_Sim1[15, 1] = colMeans(error_mat_MARS1_nf, na.rm = T)
-Final_Table_Sim1[16, 1] = colMeans(error_mat_XGB1_nf, na.rm = T)
+Final_Table_Sim1[8, 1] = colMeans(error_mat_cnn_1, na.rm = T)
+Final_Table_Sim1[9, 1] = colMeans(error_mat_nn_1, na.rm = T)
+Final_Table_Sim1[10, 1] = colMeans(error_mat_fnn_1, na.rm = T)
+Final_Table_Sim1[11, 1] = colMeans(error_mat_lm1_nf, na.rm = T)
+Final_Table_Sim1[12, 1] = colMeans(error_mat_lassoMin1_nf, na.rm = T)
+Final_Table_Sim1[13, 1] = colMeans(error_mat_lasso1se1_nf, na.rm = T)
+Final_Table_Sim1[14, 1] = colMeans(error_mat_RF1_nf, na.rm = T)
+Final_Table_Sim1[15, 1] = colMeans(error_mat_GBM1_nf, na.rm = T)
+Final_Table_Sim1[16, 1] = colMeans(error_mat_PPR1_nf, na.rm = T)
+Final_Table_Sim1[17, 1] = colMeans(error_mat_MARS1_nf, na.rm = T)
+Final_Table_Sim1[18, 1] = colMeans(error_mat_XGB1_nf, na.rm = T)
 
 # Collecting SDs
 Final_Table_Sim1[1, 2] = colSds(error_mat_lm_1, na.rm = T)/sqrt(sim_num)
@@ -618,19 +769,79 @@ Final_Table_Sim1[4, 2] = colSds(error_mat_pc2_1, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim1[5, 2] = colSds(error_mat_pc3_1, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim1[6, 2] = colSds(error_mat_pls1_1, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim1[7, 2] = colSds(error_mat_pls2_1, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[8, 2] = colSds(error_mat_fnn_1, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[9, 2] = colSds(error_mat_lm1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[10, 2] = colSds(error_mat_lassoMin1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[11, 2] = colSds(error_mat_lasso1se1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[12, 2] = colSds(error_mat_RF1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[13, 2] = colSds(error_mat_GBM1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[14, 2] = colSds(error_mat_PPR1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[15, 2] = colSds(error_mat_MARS1_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim1[16, 2] = colSds(error_mat_XGB1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[8, 2] = colSds(error_mat_cnn_1, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[9, 2] = colSds(error_mat_nn_1, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[10, 2] = colSds(error_mat_fnn_1, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[11, 2] = colSds(error_mat_lm1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[12, 2] = colSds(error_mat_lassoMin1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[13, 2] = colSds(error_mat_lasso1se1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[14, 2] = colSds(error_mat_RF1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[15, 2] = colSds(error_mat_GBM1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[16, 2] = colSds(error_mat_PPR1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[17, 2] = colSds(error_mat_MARS1_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim1[18, 2] = colSds(error_mat_XGB1_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim1) = c("Mean", "SE")
 Final_Table_Sim1
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm_1[, 1],
+                  error_mat_np_1[, 1],
+                  error_mat_pc1_1[, 1],
+                  error_mat_pc2_1[, 1],
+                  error_mat_pc3_1[, 1],
+                  error_mat_pls1_1[, 1],
+                  error_mat_pls2_1[, 1],
+                  error_mat_cnn_1[, 1],
+                  error_mat_nn_1[, 1],
+                  error_mat_fnn_1[, 1],
+                  error_mat_lm1_nf[, 1],
+                  error_mat_lassoMin1_nf[, 1],
+                  error_mat_lasso1se1_nf[, 1],
+                  error_mat_RF1_nf[, 1],
+                  error_mat_GBM1_nf[, 1],
+                  error_mat_PPR1_nf[, 1],
+                  error_mat_MARS1_nf[, 1],
+                  error_mat_XGB1_nf[, 1])
+
+# Initializing
+p_value_df_sim1 = matrix(nrow = ncol(t_test_df), ncol = 4)
+rownames(p_value_df_sim1) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                         "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
+colnames(p_value_df_sim1) = c("P Value", "T Value", "Lower Bound", "Upper Bound")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  
+  # Selecting data sets
+  FNN_ttest = t_test_df[, 10]
+  Other_ttest = t_test_df[, i]
+  
+  # Calculating difference
+  d = FNN_ttest - Other_ttest
+  
+  # Mean difference
+  mean_d = mean(d)
+  
+  # SE
+  se_d = sd(d)/sqrt(length(FNN_ttest))
+  
+  # T value
+  T_value = mean_d/se_d
+  
+  # df
+  df_val = length(FNN_ttest) - 1
+  
+  # p-value
+  p_value = pt(abs(T_value), df_val, lower.tail = F)
+  
+  # Storing
+  p_value_df_sim1[i, 1] = p_value
+  p_value_df_sim1[i, 2] = T_value
+  p_value_df_sim1[i, 3] = mean_d - T_value*se_d
+  p_value_df_sim1[i, 4] = mean_d + T_value*se_d
+}
 
 
 #####################################################################################################################
@@ -666,6 +877,8 @@ error_mat_pc3_2 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls1_2 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls2_2 = matrix(nrow = sim_num, ncol = 1)
 error_mat_np_2 = matrix(nrow = sim_num, ncol = 1)
+error_mat_cnn_2 = matrix(nrow = sim_num, ncol = 1)
+error_mat_nn_2 = matrix(nrow = sim_num, ncol = 1)
 error_mat_fnn_2 = matrix(nrow = sim_num, ncol = 1)
 error_mat_lm2_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_lassoMin2_nf = matrix(nrow = sim_num, ncol = 1)
@@ -1083,13 +1296,155 @@ for (u in 1:sim_num) {
   prediction_xgb <- predict(xgb_model, newdata = test_x)
   MSPE_xgb <- mean((test_y - prediction_xgb)^2, na.rm = T)
   
-  #######################################
-  # Running Conventional Neural Network #
-  #######################################
+  ########################################
+  # Neural Network Tuning Setup          #
+  ########################################
+  
+  # Initializing
+  min_error_nn = 99999
+  min_error_cnn = 99999
+  # min_error_fnn = 99999
+  
+  # Setting up MV data
+  MV_train = as.data.frame(sim_data[-ind,])
+  MV_test = as.data.frame(sim_data[ind,])
+  
+  # Random Split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Learn rates grid
+  num_initalizations = 10
   
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting up CNN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training CNN model
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                                     train_y[train_split], 
+                                     epochs = 250,  
+                                     validation_split = 0.2,
+                                     callbacks = list(early_stop),
+                                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error_cnn){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Saving training plots
+      # cnn_training_plot[[i]] = as.data.frame(history_cnn)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error_cnn = error_cnn_train
+      
+    }
+    
+  }
+  
+  ########################################
+  # Running Conventional Neural Network #
+  ########################################
+  
+  # Setting up NN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Training FNN model
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                                   train_y[train_split], 
+                                   epochs = 250,  
+                                   validation_split = 0.2,
+                                   callbacks = list(early_stop),
+                                   verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error_nn){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # Saving training plots
+      # nn_training_plot[[i]] = as.data.frame(history_nn)
+      
+      # New Min Error
+      min_error_nn = error_nn_train
+      
+    }
+    
+  }
   
   #####################################
   # Running Functional Neural Network #
@@ -1142,6 +1497,8 @@ for (u in 1:sim_num) {
   error_mat_pls1_2[u, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2_2[u, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np_2[u, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn_2[u, 1] = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+  error_mat_nn_2[u, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn_2[u, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   error_mat_lm2_nf[u, 1] = mean((pred_lm - test_y)^2, na.rm = T)
   error_mat_lassoMin2_nf[u, 1] = mean((y.2 - predict_lasso_min_mspe)^2, na.rm = T)
@@ -1162,7 +1519,7 @@ for (u in 1:sim_num) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Sim2 = matrix(nrow = 16, ncol = 2)
+Final_Table_Sim2 = matrix(nrow = 18, ncol = 2)
 
 # Collecting errors
 Final_Table_Sim2[1, 1] = colMeans(error_mat_lm_2, na.rm = T)
@@ -1172,15 +1529,17 @@ Final_Table_Sim2[4, 1] = colMeans(error_mat_pc2_2, na.rm = T)
 Final_Table_Sim2[5, 1] = colMeans(error_mat_pc3_2, na.rm = T)
 Final_Table_Sim2[6, 1] = colMeans(error_mat_pls1_2, na.rm = T)
 Final_Table_Sim2[7, 1] = colMeans(error_mat_pls2_2, na.rm = T)
-Final_Table_Sim2[8, 1] = colMeans(error_mat_fnn_2, na.rm = T)
-Final_Table_Sim2[9, 1] = colMeans(error_mat_lm2_nf, na.rm = T)
-Final_Table_Sim2[10, 1] = colMeans(error_mat_lassoMin2_nf, na.rm = T)
-Final_Table_Sim2[11, 1] = colMeans(error_mat_lasso1se2_nf, na.rm = T)
-Final_Table_Sim2[12, 1] = colMeans(error_mat_RF2_nf, na.rm = T)
-Final_Table_Sim2[13, 1] = colMeans(error_mat_GBM2_nf, na.rm = T)
-Final_Table_Sim2[14, 1] = colMeans(error_mat_PPR2_nf, na.rm = T)
-Final_Table_Sim2[15, 1] = colMeans(error_mat_MARS2_nf, na.rm = T)
-Final_Table_Sim2[16, 1] = colMeans(error_mat_XGB2_nf, na.rm = T)
+Final_Table_Sim2[8, 1] = colMeans(error_mat_cnn_2, na.rm = T)
+Final_Table_Sim2[9, 1] = colMeans(error_mat_nn_2, na.rm = T)
+Final_Table_Sim2[10, 1] = colMeans(error_mat_fnn_2, na.rm = T)
+Final_Table_Sim2[11, 1] = colMeans(error_mat_lm2_nf, na.rm = T)
+Final_Table_Sim2[12, 1] = colMeans(error_mat_lassoMin2_nf, na.rm = T)
+Final_Table_Sim2[13, 1] = colMeans(error_mat_lasso1se2_nf, na.rm = T)
+Final_Table_Sim2[14, 1] = colMeans(error_mat_RF2_nf, na.rm = T)
+Final_Table_Sim2[15, 1] = colMeans(error_mat_GBM2_nf, na.rm = T)
+Final_Table_Sim2[16, 1] = colMeans(error_mat_PPR2_nf, na.rm = T)
+Final_Table_Sim2[17, 1] = colMeans(error_mat_MARS2_nf, na.rm = T)
+Final_Table_Sim2[18, 1] = colMeans(error_mat_XGB2_nf, na.rm = T)
 
 # Collecting SDs
 Final_Table_Sim2[1, 2] = colSds(error_mat_lm_2, na.rm = T)/sqrt(sim_num)
@@ -1190,19 +1549,79 @@ Final_Table_Sim2[4, 2] = colSds(error_mat_pc2_2, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim2[5, 2] = colSds(error_mat_pc3_2, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim2[6, 2] = colSds(error_mat_pls1_2, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim2[7, 2] = colSds(error_mat_pls2_2, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[8, 2] = colSds(error_mat_fnn_2, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[9, 2] = colSds(error_mat_lm2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[10, 2] = colSds(error_mat_lassoMin2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[11, 2] = colSds(error_mat_lasso1se2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[12, 2] = colSds(error_mat_RF2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[13, 2] = colSds(error_mat_GBM2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[14, 2] = colSds(error_mat_PPR2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[15, 2] = colSds(error_mat_MARS2_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim2[16, 2] = colSds(error_mat_XGB2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[8, 2] = colSds(error_mat_cnn_2, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[9, 2] = colSds(error_mat_nn_2, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[10, 2] = colSds(error_mat_fnn_2, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[11, 2] = colSds(error_mat_lm2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[12, 2] = colSds(error_mat_lassoMin2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[13, 2] = colSds(error_mat_lasso1se2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[14, 2] = colSds(error_mat_RF2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[15, 2] = colSds(error_mat_GBM2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[16, 2] = colSds(error_mat_PPR2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[17, 2] = colSds(error_mat_MARS2_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim2[18, 2] = colSds(error_mat_XGB2_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim2) = c("Mean", "SE")
 Final_Table_Sim2
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm_2[, 1],
+                  error_mat_np_2[, 1],
+                  error_mat_pc1_2[, 1],
+                  error_mat_pc2_2[, 1],
+                  error_mat_pc3_2[, 1],
+                  error_mat_pls1_2[, 1],
+                  error_mat_pls2_2[, 1],
+                  error_mat_cnn_2[, 1],
+                  error_mat_nn_2[, 1],
+                  error_mat_fnn_2[, 1],
+                  error_mat_lm2_nf[, 1],
+                  error_mat_lassoMin2_nf[, 1],
+                  error_mat_lasso1se2_nf[, 1],
+                  error_mat_RF2_nf[, 1],
+                  error_mat_GBM2_nf[, 1],
+                  error_mat_PPR2_nf[, 1],
+                  error_mat_MARS2_nf[, 1],
+                  error_mat_XGB2_nf[, 1])
+
+# Initializing
+p_value_df_sim2 = matrix(nrow = ncol(t_test_df), ncol = 4)
+rownames(p_value_df_sim2) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                              "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
+colnames(p_value_df_sim2) = c("P Value", "T Value", "Lower Bound", "Upper Bound")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  
+  # Selecting data sets
+  FNN_ttest = t_test_df[, 10]
+  Other_ttest = t_test_df[, i]
+  
+  # Calculating difference
+  d = FNN_ttest - Other_ttest
+  
+  # Mean difference
+  mean_d = mean(d)
+  
+  # SE
+  se_d = sd(d)/sqrt(length(FNN_ttest))
+  
+  # T value
+  T_value = mean_d/se_d
+  
+  # df
+  df_val = length(FNN_ttest) - 1
+  
+  # p-value
+  p_value = pt(abs(T_value), df_val, lower.tail = F)
+  
+  # Storing
+  p_value_df_sim2[i, 1] = p_value
+  p_value_df_sim2[i, 2] = T_value
+  p_value_df_sim2[i, 3] = mean_d - T_value*se_d
+  p_value_df_sim2[i, 4] = mean_d + T_value*se_d
+}
 
 
 #####################################################################################################################
@@ -1238,6 +1657,8 @@ error_mat_pc3_3 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls1_3 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls2_3 = matrix(nrow = sim_num, ncol = 1)
 error_mat_np_3 = matrix(nrow = sim_num, ncol = 1)
+error_mat_cnn_3 = matrix(nrow = sim_num, ncol = 1)
+error_mat_nn_3 = matrix(nrow = sim_num, ncol = 1)
 error_mat_fnn_3 = matrix(nrow = sim_num, ncol = 1)
 error_mat_lm3_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_lassoMin3_nf = matrix(nrow = sim_num, ncol = 1)
@@ -1654,13 +2075,155 @@ for (u in 1:sim_num) {
   prediction_xgb <- predict(xgb_model, newdata = test_x)
   MSPE_xgb <- mean((test_y - prediction_xgb)^2, na.rm = T)
   
-  #######################################
-  # Running Conventional Neural Network #
-  #######################################
+  ########################################
+  # Neural Network Tuning Setup          #
+  ########################################
+  
+  # Initializing
+  min_error_nn = 99999
+  min_error_cnn = 99999
+  # min_error_fnn = 99999
+  
+  # Setting up MV data
+  MV_train = as.data.frame(sim_data[-ind,])
+  MV_test = as.data.frame(sim_data[ind,])
+  
+  # Random Split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Learn rates grid
+  num_initalizations = 10
   
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting up CNN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training CNN model
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                                     train_y[train_split], 
+                                     epochs = 250,  
+                                     validation_split = 0.2,
+                                     callbacks = list(early_stop),
+                                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error_cnn){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Saving training plots
+      # cnn_training_plot[[i]] = as.data.frame(history_cnn)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error_cnn = error_cnn_train
+      
+    }
+    
+  }
+  
+  ########################################
+  # Running Conventional Neural Network #
+  ########################################
+  
+  # Setting up NN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Training FNN model
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                                   train_y[train_split], 
+                                   epochs = 250,  
+                                   validation_split = 0.2,
+                                   callbacks = list(early_stop),
+                                   verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error_nn){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # Saving training plots
+      # nn_training_plot[[i]] = as.data.frame(history_nn)
+      
+      # New Min Error
+      min_error_nn = error_nn_train
+      
+    }
+    
+  }
   
   #####################################
   # Running Functional Neural Network #
@@ -1713,6 +2276,8 @@ for (u in 1:sim_num) {
   error_mat_pls1_3[u, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2_3[u, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np_3[u, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn_3[u, 1] = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+  error_mat_nn_3[u, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn_3[u, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   error_mat_lm3_nf[u, 1] = mean((pred_lm - test_y)^2, na.rm = T)
   error_mat_lassoMin3_nf[u, 1] = mean((y.2 - predict_lasso_min_mspe)^2, na.rm = T)
@@ -1733,7 +2298,7 @@ for (u in 1:sim_num) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Sim3 = matrix(nrow = 16, ncol = 2)
+Final_Table_Sim3 = matrix(nrow = 18, ncol = 2)
 
 # Collecting errors
 Final_Table_Sim3[1, 1] = colMeans(error_mat_lm_3, na.rm = T)
@@ -1743,15 +2308,17 @@ Final_Table_Sim3[4, 1] = colMeans(error_mat_pc2_3, na.rm = T)
 Final_Table_Sim3[5, 1] = colMeans(error_mat_pc3_3, na.rm = T)
 Final_Table_Sim3[6, 1] = colMeans(error_mat_pls1_3, na.rm = T)
 Final_Table_Sim3[7, 1] = colMeans(error_mat_pls2_3, na.rm = T)
-Final_Table_Sim3[8, 1] = colMeans(error_mat_fnn_3, na.rm = T)
-Final_Table_Sim3[9, 1] = colMeans(error_mat_lm3_nf, na.rm = T)
-Final_Table_Sim3[10, 1] = colMeans(error_mat_lassoMin3_nf, na.rm = T)
-Final_Table_Sim3[11, 1] = colMeans(error_mat_lasso1se3_nf, na.rm = T)
-Final_Table_Sim3[12, 1] = colMeans(error_mat_RF3_nf, na.rm = T)
-Final_Table_Sim3[13, 1] = colMeans(error_mat_GBM3_nf, na.rm = T)
-Final_Table_Sim3[14, 1] = colMeans(error_mat_PPR3_nf, na.rm = T)
-Final_Table_Sim3[15, 1] = colMeans(error_mat_MARS3_nf, na.rm = T)
-Final_Table_Sim3[16, 1] = colMeans(error_mat_XGB3_nf, na.rm = T)
+Final_Table_Sim3[8, 1] = colMeans(error_mat_cnn_3, na.rm = T)
+Final_Table_Sim3[9, 1] = colMeans(error_mat_nn_3, na.rm = T)
+Final_Table_Sim3[10, 1] = colMeans(error_mat_fnn_3, na.rm = T)
+Final_Table_Sim3[11, 1] = colMeans(error_mat_lm3_nf, na.rm = T)
+Final_Table_Sim3[12, 1] = colMeans(error_mat_lassoMin3_nf, na.rm = T)
+Final_Table_Sim3[13, 1] = colMeans(error_mat_lasso1se3_nf, na.rm = T)
+Final_Table_Sim3[14, 1] = colMeans(error_mat_RF3_nf, na.rm = T)
+Final_Table_Sim3[15, 1] = colMeans(error_mat_GBM3_nf, na.rm = T)
+Final_Table_Sim3[16, 1] = colMeans(error_mat_PPR3_nf, na.rm = T)
+Final_Table_Sim3[17, 1] = colMeans(error_mat_MARS3_nf, na.rm = T)
+Final_Table_Sim3[18, 1] = colMeans(error_mat_XGB3_nf, na.rm = T)
 
 # Collecting SDs
 Final_Table_Sim3[1, 2] = colSds(error_mat_lm_3, na.rm = T)/sqrt(sim_num)
@@ -1761,19 +2328,80 @@ Final_Table_Sim3[4, 2] = colSds(error_mat_pc2_3, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim3[5, 2] = colSds(error_mat_pc3_3, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim3[6, 2] = colSds(error_mat_pls1_3, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim3[7, 2] = colSds(error_mat_pls2_3, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[8, 2] = colSds(error_mat_fnn_3, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[9, 2] = colSds(error_mat_lm3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[10, 2] = colSds(error_mat_lassoMin3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[11, 2] = colSds(error_mat_lasso1se3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[12, 2] = colSds(error_mat_RF3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[13, 2] = colSds(error_mat_GBM3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[14, 2] = colSds(error_mat_PPR3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[15, 2] = colSds(error_mat_MARS3_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim3[16, 2] = colSds(error_mat_XGB3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[8, 2] = colSds(error_mat_cnn_3, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[9, 2] = colSds(error_mat_nn_3, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[10, 2] = colSds(error_mat_fnn_3, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[11, 2] = colSds(error_mat_lm3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[12, 2] = colSds(error_mat_lassoMin3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[13, 2] = colSds(error_mat_lasso1se3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[14, 2] = colSds(error_mat_RF3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[15, 2] = colSds(error_mat_GBM3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[16, 2] = colSds(error_mat_PPR3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[17, 2] = colSds(error_mat_MARS3_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim3[18, 2] = colSds(error_mat_XGB3_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim3) = c("Mean", "SE")
 Final_Table_Sim3
+
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm_3[, 1],
+                  error_mat_np_3[, 1],
+                  error_mat_pc1_3[, 1],
+                  error_mat_pc2_3[, 1],
+                  error_mat_pc3_3[, 1],
+                  error_mat_pls1_3[, 1],
+                  error_mat_pls2_3[, 1],
+                  error_mat_cnn_3[, 1],
+                  error_mat_nn_3[, 1],
+                  error_mat_fnn_3[, 1],
+                  error_mat_lm3_nf[, 1],
+                  error_mat_lassoMin3_nf[, 1],
+                  error_mat_lasso1se3_nf[, 1],
+                  error_mat_RF3_nf[, 1],
+                  error_mat_GBM3_nf[, 1],
+                  error_mat_PPR3_nf[, 1],
+                  error_mat_MARS3_nf[, 1],
+                  error_mat_XGB3_nf[, 1])
+
+# Initializing
+p_value_df_sim3 = matrix(nrow = ncol(t_test_df), ncol = 4)
+rownames(p_value_df_sim3) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                              "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
+colnames(p_value_df_sim3) = c("P Value", "T Value", "Lower Bound", "Upper Bound")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  
+  # Selecting data sets
+  FNN_ttest = t_test_df[, 10]
+  Other_ttest = t_test_df[, i]
+  
+  # Calculating difference
+  d = FNN_ttest - Other_ttest
+  
+  # Mean difference
+  mean_d = mean(d)
+  
+  # SE
+  se_d = sd(d)/sqrt(length(FNN_ttest))
+  
+  # T value
+  T_value = mean_d/se_d
+  
+  # df
+  df_val = length(FNN_ttest) - 1
+  
+  # p-value
+  p_value = pt(abs(T_value), df_val, lower.tail = F)
+  
+  # Storing
+  p_value_df_sim3[i, 1] = p_value
+  p_value_df_sim3[i, 2] = T_value
+  p_value_df_sim3[i, 3] = mean_d - T_value*se_d
+  p_value_df_sim3[i, 4] = mean_d + T_value*se_d
+}
 
 
 #####################################################################################################################
@@ -1809,6 +2437,8 @@ error_mat_pc3_4 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls1_4 = matrix(nrow = sim_num, ncol = 1)
 error_mat_pls2_4 = matrix(nrow = sim_num, ncol = 1)
 error_mat_np_4 = matrix(nrow = sim_num, ncol = 1)
+error_mat_cnn_4 = matrix(nrow = sim_num, ncol = 1)
+error_mat_nn_4 = matrix(nrow = sim_num, ncol = 1)
 error_mat_fnn_4 = matrix(nrow = sim_num, ncol = 1)
 error_mat_lm4_nf = matrix(nrow = sim_num, ncol = 1)
 error_mat_lassoMin4_nf = matrix(nrow = sim_num, ncol = 1)
@@ -2225,17 +2855,155 @@ for (u in 1:sim_num) {
   prediction_xgb <- predict(xgb_model, newdata = test_x)
   MSPE_xgb <- mean((test_y - prediction_xgb)^2, na.rm = T)
   
-  #######################################
-  # Running Conventional Neural Network #
-  #######################################
+  ########################################
+  # Neural Network Tuning Setup          #
+  ########################################
+  
+  # Initializing
+  min_error_nn = 99999
+  min_error_cnn = 99999
+  # min_error_fnn = 99999
+  
+  # Setting up MV data
+  MV_train = as.data.frame(sim_data[-ind,])
+  MV_test = as.data.frame(sim_data[ind,])
+  
+  # Random Split
+  train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
+  
+  # Learn rates grid
+  num_initalizations = 10
   
   ########################################
   # Running Convolutional Neural Network #
   ########################################
   
-  #####################################
-  # Running Functional Neural Network #
-  #####################################
+  # Setting up CNN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_cnn <- keras_model_sequential()
+    model_cnn %>% 
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+      layer_max_pooling_1d(pool_size = 2) %>%
+      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_flatten() %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_cnn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Setting up data
+    reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
+    reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
+    reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
+    reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
+    
+    # Training CNN model
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
+                                     train_y[train_split], 
+                                     epochs = 250,  
+                                     validation_split = 0.2,
+                                     callbacks = list(early_stop),
+                                     verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
+    
+    # Plotting
+    error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_cnn_train < min_error_cnn){
+      
+      # Setting up test data
+      reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
+      reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
+      
+      # Predictions
+      pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
+      
+      # Saving training plots
+      # cnn_training_plot[[i]] = as.data.frame(history_cnn)
+      
+      # Error
+      error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+      
+      # New Min Error
+      min_error_cnn = error_cnn_train
+      
+    }
+    
+  }
+  
+  ########################################
+  # Running Conventional Neural Network #
+  ########################################
+  
+  # Setting up NN model
+  for(i in 1:num_initalizations){
+    
+    # setting up model
+    model_nn <- keras_model_sequential()
+    model_nn %>% 
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 16, activation = 'linear') %>%
+      layer_dense(units = 1, activation = 'linear')
+    
+    # Setting parameters for NN model
+    model_nn %>% compile(
+      optimizer = optimizer_adam(lr = 0.001), 
+      loss = 'mse',
+      metrics = c('mean_squared_error')
+    )
+    
+    # Early stopping
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+    
+    # Training FNN model
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
+                                   train_y[train_split], 
+                                   epochs = 250,  
+                                   validation_split = 0.2,
+                                   callbacks = list(early_stop),
+                                   verbose = 0)
+    
+    # Predictions
+    test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
+    
+    # Plotting
+    error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+    
+    # Checking error
+    if(error_nn_train < min_error_nn){
+      
+      # Predictions
+      pred_nn <- model_nn %>% predict(as.matrix(MV_test))
+      
+      # Error
+      error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
+      
+      # Saving training plots
+      # nn_training_plot[[i]] = as.data.frame(history_nn)
+      
+      # New Min Error
+      min_error_nn = error_nn_train
+      
+    }
+    
+  }
   
   # Running FNN for simulation
   use_session_with_seed(
@@ -2284,6 +3052,8 @@ for (u in 1:sim_num) {
   error_mat_pls1_4[u, 1] = mean((pred_pls - test_y)^2, na.rm = T)
   error_mat_pls2_4[u, 1] = mean((pred_pls2 - test_y)^2, na.rm = T)
   error_mat_np_4[u, 1] = mean((pred_np - test_y)^2, na.rm = T)
+  error_mat_cnn_4[u, 1] = mean((c(pred_cnn) - test_y)^2, na.rm = T)
+  error_mat_nn_4[u, 1] = mean((c(pred_nn) - test_y)^2, na.rm = T)
   error_mat_fnn_4[u, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
   error_mat_lm4_nf[u, 1] = mean((pred_lm - test_y)^2, na.rm = T)
   error_mat_lassoMin4_nf[u, 1] = mean((y.2 - predict_lasso_min_mspe)^2, na.rm = T)
@@ -2304,7 +3074,7 @@ for (u in 1:sim_num) {
 }
 
 # Initializing final table: average of errors
-Final_Table_Sim4 = matrix(nrow = 16, ncol = 2)
+Final_Table_Sim4 = matrix(nrow = 18, ncol = 2)
 
 # Collecting errors
 Final_Table_Sim4[1, 1] = colMeans(error_mat_lm_4, na.rm = T)
@@ -2314,15 +3084,17 @@ Final_Table_Sim4[4, 1] = colMeans(error_mat_pc2_4, na.rm = T)
 Final_Table_Sim4[5, 1] = colMeans(error_mat_pc3_4, na.rm = T)
 Final_Table_Sim4[6, 1] = colMeans(error_mat_pls1_4, na.rm = T)
 Final_Table_Sim4[7, 1] = colMeans(error_mat_pls2_4, na.rm = T)
-Final_Table_Sim4[8, 1] = colMeans(error_mat_fnn_4, na.rm = T)
-Final_Table_Sim4[9, 1] = colMeans(error_mat_lm4_nf, na.rm = T)
-Final_Table_Sim4[10, 1] = colMeans(error_mat_lassoMin4_nf, na.rm = T)
-Final_Table_Sim4[11, 1] = colMeans(error_mat_lasso1se4_nf, na.rm = T)
-Final_Table_Sim4[12, 1] = colMeans(error_mat_RF4_nf, na.rm = T)
-Final_Table_Sim4[13, 1] = colMeans(error_mat_GBM4_nf, na.rm = T)
-Final_Table_Sim4[14, 1] = colMeans(error_mat_PPR4_nf, na.rm = T)
-Final_Table_Sim4[15, 1] = colMeans(error_mat_MARS4_nf, na.rm = T)
-Final_Table_Sim4[16, 1] = colMeans(error_mat_XGB4_nf, na.rm = T)
+Final_Table_Sim4[8, 1] = colMeans(error_mat_cnn_4, na.rm = T)
+Final_Table_Sim4[9, 1] = colMeans(error_mat_nn_4, na.rm = T)
+Final_Table_Sim4[10, 1] = colMeans(error_mat_fnn_4, na.rm = T)
+Final_Table_Sim4[11, 1] = colMeans(error_mat_lm4_nf, na.rm = T)
+Final_Table_Sim4[12, 1] = colMeans(error_mat_lassoMin4_nf, na.rm = T)
+Final_Table_Sim4[13, 1] = colMeans(error_mat_lasso1se4_nf, na.rm = T)
+Final_Table_Sim4[14, 1] = colMeans(error_mat_RF4_nf, na.rm = T)
+Final_Table_Sim4[15, 1] = colMeans(error_mat_GBM4_nf, na.rm = T)
+Final_Table_Sim4[16, 1] = colMeans(error_mat_PPR4_nf, na.rm = T)
+Final_Table_Sim4[17, 1] = colMeans(error_mat_MARS4_nf, na.rm = T)
+Final_Table_Sim4[18, 1] = colMeans(error_mat_XGB4_nf, na.rm = T)
 
 # Collecting SDs
 Final_Table_Sim4[1, 2] = colSds(error_mat_lm_4, na.rm = T)/sqrt(sim_num)
@@ -2332,19 +3104,79 @@ Final_Table_Sim4[4, 2] = colSds(error_mat_pc2_4, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim4[5, 2] = colSds(error_mat_pc3_4, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim4[6, 2] = colSds(error_mat_pls1_4, na.rm = T)/sqrt(sim_num)
 Final_Table_Sim4[7, 2] = colSds(error_mat_pls2_4, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[8, 2] = colSds(error_mat_fnn_4, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[9, 2] = colSds(error_mat_lm4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[10, 2] = colSds(error_mat_lassoMin4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[11, 2] = colSds(error_mat_lasso1se4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[12, 2] = colSds(error_mat_RF4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[13, 2] = colSds(error_mat_GBM4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[14, 2] = colSds(error_mat_PPR4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[15, 2] = colSds(error_mat_MARS4_nf, na.rm = T)/sqrt(sim_num)
-Final_Table_Sim4[16, 2] = colSds(error_mat_XGB4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[8, 2] = colSds(error_mat_cnn_4, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[9, 2] = colSds(error_mat_nn_4, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[10, 2] = colSds(error_mat_fnn_4, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[11, 2] = colSds(error_mat_lm4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[12, 2] = colSds(error_mat_lassoMin4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[13, 2] = colSds(error_mat_lasso1se4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[14, 2] = colSds(error_mat_RF4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[15, 2] = colSds(error_mat_GBM4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[16, 2] = colSds(error_mat_PPR4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[17, 2] = colSds(error_mat_MARS4_nf, na.rm = T)/sqrt(sim_num)
+Final_Table_Sim4[18, 2] = colSds(error_mat_XGB4_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim4) = c("Mean", "SE")
 Final_Table_Sim4
+
+# Creating data frame
+t_test_df = cbind(error_mat_lm_4[, 1],
+                  error_mat_np_4[, 1],
+                  error_mat_pc1_4[, 1],
+                  error_mat_pc2_4[, 1],
+                  error_mat_pc3_4[, 1],
+                  error_mat_pls1_4[, 1],
+                  error_mat_pls2_4[, 1],
+                  error_mat_cnn_4[, 1],
+                  error_mat_nn_4[, 1],
+                  error_mat_fnn_4[, 1],
+                  error_mat_lm4_nf[, 1],
+                  error_mat_lassoMin4_nf[, 1],
+                  error_mat_lasso1se4_nf[, 1],
+                  error_mat_RF4_nf[, 1],
+                  error_mat_GBM4_nf[, 1],
+                  error_mat_PPR4_nf[, 1],
+                  error_mat_MARS4_nf[, 1],
+                  error_mat_XGB4_nf[, 1])
+
+# Initializing
+p_value_df_sim4 = matrix(nrow = ncol(t_test_df), ncol = 4)
+rownames(p_value_df_sim4) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                              "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
+colnames(p_value_df_sim4) = c("P Value", "T Value", "Lower Bound", "Upper Bound")
+
+# Getting p-values
+for(i in 1:ncol(t_test_df)) {
+  
+  # Selecting data sets
+  FNN_ttest = t_test_df[, 10]
+  Other_ttest = t_test_df[, i]
+  
+  # Calculating difference
+  d = FNN_ttest - Other_ttest
+  
+  # Mean difference
+  mean_d = mean(d)
+  
+  # SE
+  se_d = sd(d)/sqrt(length(FNN_ttest))
+  
+  # T value
+  T_value = mean_d/se_d
+  
+  # df
+  df_val = length(FNN_ttest) - 1
+  
+  # p-value
+  p_value = pt(abs(T_value), df_val, lower.tail = F)
+  
+  # Storing
+  p_value_df_sim4[i, 1] = p_value
+  p_value_df_sim4[i, 2] = T_value
+  p_value_df_sim4[i, 3] = mean_d - T_value*se_d
+  p_value_df_sim4[i, 4] = mean_d + T_value*se_d
+}
 
 ################################################################################
 # Creating MSPE Plots # #
@@ -2364,6 +3196,8 @@ sim1_mat = cbind(error_mat_lm1_nf,
                  error_mat_pc3_1,
                  error_mat_pls1_1,
                  error_mat_pls2_1,
+                 error_mat_cnn_1,
+                 error_mat_nn_1,
                  error_mat_fnn_1)
 
 sim2_mat = cbind(error_mat_lm2_nf, 
@@ -2379,6 +3213,8 @@ sim2_mat = cbind(error_mat_lm2_nf,
                  error_mat_pc3_2,
                  error_mat_pls1_2,
                  error_mat_pls2_2,
+                 error_mat_cnn_2,
+                 error_mat_nn_2,
                  error_mat_fnn_2)
 
 sim3_mat = cbind(error_mat_lm3_nf, 
@@ -2394,6 +3230,8 @@ sim3_mat = cbind(error_mat_lm3_nf,
                  error_mat_pc3_3,
                  error_mat_pls1_3,
                  error_mat_pls2_3,
+                 error_mat_cnn_3,
+                 error_mat_nn_3,
                  error_mat_fnn_3)
 
 sim4_mat = cbind(error_mat_lm4_nf, 
@@ -2409,11 +3247,13 @@ sim4_mat = cbind(error_mat_lm4_nf,
                  error_mat_pc3_4,
                  error_mat_pls1_4,
                  error_mat_pls2_4,
+                 error_mat_cnn_4,
+                 error_mat_nn_4,
                  error_mat_fnn_4)
 
 # Names
 names_list = c("MLR", "LASSO_Min", "LASOO_1se", "RF", "GBM", "PPR", "XGB", 
-               "FLM", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "FNN")
+               "FLM", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 
 # Changing
 colnames(sim1_mat) = names_list
@@ -2426,68 +3266,6 @@ write.table(sim1_mat, file="sim1Pred.csv", row.names = F)
 write.table(sim2_mat, file="sim2Pred.csv", row.names = F)
 write.table(sim3_mat, file="sim3Pred.csv", row.names = F)
 write.table(sim4_mat, file="sim4Pred.csv", row.names = F)
-
-# t-tests 
-
-# sim 1
-
-# Initializing
-p_value_df_sim1 = matrix(nrow = ncol(sim1_mat), ncol = ncol(sim1_mat))
-colnames(p_value_df_sim1) = names_list
-rownames(p_value_df_sim1) = names_list
-
-# Getting p-values
-for(i in 1:ncol(sim1_mat)) {
-  for(j in 1:ncol(sim1_mat)) {
-    test_results = t.test(sim1_mat[, i], sim1_mat[, j], var.equal = F)
-    p_value_df_sim1[i, j] = test_results$p.value
-  }
-}
-
-# sim 2
-
-# Initializing
-p_value_df_sim2 = matrix(nrow = ncol(sim2_mat), ncol = ncol(sim2_mat))
-colnames(p_value_df_sim2) = names_list
-rownames(p_value_df_sim2) = names_list
-
-# Getting p-values
-for(i in 1:ncol(sim2_mat)) {
-  for(j in 1:ncol(sim2_mat)) {
-    test_results = t.test(sim2_mat[, i], sim2_mat[, j], var.equal = F)
-    p_value_df_sim2[i, j] = test_results$p.value
-  }
-}
-
-# sim 3
-
-# Initializing
-p_value_df_sim3 = matrix(nrow = ncol(sim3_mat), ncol = ncol(sim3_mat))
-colnames(p_value_df_sim3) = names_list
-rownames(p_value_df_sim3) = names_list
-
-# Getting p-values
-for(i in 1:ncol(sim3_mat)) {
-  for(j in 1:ncol(sim3_mat)) {
-    test_results = t.test(sim3_mat[, i], sim3_mat[, j], var.equal = F)
-    p_value_df_sim3[i, j] = test_results$p.value
-  }
-}
-
-# sim 4
-
-# Initializing
-p_value_df_sim4 = matrix(nrow = ncol(sim4_mat), ncol = ncol(sim4_mat))
-colnames(p_value_df_sim4) = names_list
-rownames(p_value_df_sim4) = names_list
-
-# Getting p-values
-for(i in 1:ncol(sim4_mat)) {
-  for(j in 1:ncol(sim4_mat)) {
-    test_results = t.test(sim4_mat[, i], sim4_mat[, j], var.equal = F)
-    p_value_df_sim4[i, j] = test_results$p.value
-  }
-}
 
 
 # Creating boxplots
@@ -2677,7 +3455,7 @@ plot4_rel <- ggplot(stack(df_MSPE), aes(x = ind, y = values)) +
 
 plot4_rel
 
-# Saving plots
+# Saving plots (10 x 13 pdf)
 grid.draw(rbind(ggplotGrob(plot1_rel), ggplotGrob(plot2_rel), ggplotGrob(plot3_rel), ggplotGrob(plot4_rel), size = "last"))
 
 

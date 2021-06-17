@@ -232,8 +232,8 @@ for (u in 1:250) {
 fnn_mean1 = mean(RMSE_fnn)
 lm_mean1 = mean(RMSE_lm)
 
-fnn_sd1 = sd(RMSE_fnn)
-lm_sd1 = sd(RMSE_lm)
+fnn_sd1 = sd(RMSE_fnn)/sqrt(250)
+lm_sd1 = sd(RMSE_lm)/sqrt(250)
 
 # Times
 fnn_time_sim1 = sum(fnn_time)
@@ -253,6 +253,30 @@ ggplot(stack(sqrt_RMSE1), aes(x = ind, y = values)) +
   ylab("IMSE") +
   theme(axis.text=element_text(size=14, face= "bold"),
         axis.title=element_text(size=14, face="bold"))
+
+# Running paired t-test
+  
+# Selecting data sets
+FNN_ttest = RMSE_fnn
+FLM_ttest = RMSE_lm
+
+# Calculating difference
+d = FNN_ttest - FLM_ttest
+
+# Mean difference
+mean_d = mean(d)
+
+# SE
+se_d = sd(d)/sqrt(length(FNN_ttest))
+
+# T value
+T_value = mean_d/se_d
+
+# df
+df_val = length(FNN_ttest) - 1
+
+# p-value
+p_value_sim1 = pt(abs(T_value), df_val, lower.tail = F)
 
 
 #############################################################
@@ -474,8 +498,8 @@ for (u in 1:250) {
 fnn_mean2 = mean(RMSE_fnn)
 lm_mean2 = mean(RMSE_lm)
 
-fnn_sd2 = sd(RMSE_fnn)
-lm_sd2 = sd(RMSE_lm)
+fnn_sd2 = sd(RMSE_fnn)/sqrt(250)
+lm_sd2 = sd(RMSE_lm)/sqrt(250)
 
 # Times
 fnn_time_sim2 = sum(fnn_time)
@@ -495,6 +519,30 @@ ggplot(stack(sqrt_RMSE2), aes(x = ind, y = values)) +
   ylab("IMSE") +
   theme(axis.text=element_text(size=14, face= "bold"),
         axis.title=element_text(size=14, face="bold"))
+
+# Running paired t-test
+
+# Selecting data sets
+FNN_ttest = RMSE_fnn
+FLM_ttest = RMSE_lm
+
+# Calculating difference
+d = FNN_ttest - FLM_ttest
+
+# Mean difference
+mean_d = mean(d)
+
+# SE
+se_d = sd(d)/sqrt(length(FNN_ttest))
+
+# T value
+T_value = mean_d/se_d
+
+# df
+df_val = length(FNN_ttest) - 1
+
+# p-value
+p_value_sim2 = pt(abs(T_value), df_val, lower.tail = F)
 
 #############################################################
 # 3 - Sigmoid 
@@ -715,8 +763,8 @@ for (u in 1:250) {
 fnn_mean3 = mean(RMSE_fnn)
 lm_mean3 = mean(RMSE_lm)
 
-fnn_sd3 = sd(RMSE_fnn)
-lm_sd3 = sd(RMSE_lm)
+fnn_sd3 = sd(RMSE_fnn)/sqrt(250)
+lm_sd3 = sd(RMSE_lm)/sqrt(250)
 
 # Times
 fnn_time_sim3 = sum(fnn_time)
@@ -736,6 +784,30 @@ ggplot(stack(sqrt_RMSE3), aes(x = ind, y = values)) +
   ylab("IMSE") +
   theme(axis.text=element_text(size=14, face= "bold"),
         axis.title=element_text(size=14, face="bold"))
+
+# Running paired t-test
+
+# Selecting data sets
+FNN_ttest = RMSE_fnn
+FLM_ttest = RMSE_lm
+
+# Calculating difference
+d = FNN_ttest - FLM_ttest
+
+# Mean difference
+mean_d = mean(d)
+
+# SE
+se_d = sd(d)/sqrt(length(FNN_ttest))
+
+# T value
+T_value = mean_d/se_d
+
+# df
+df_val = length(FNN_ttest) - 1
+
+# p-value
+p_value_sim3 = pt(abs(T_value), df_val, lower.tail = F)
 
 #############################################################
 # 4 - Log 
@@ -955,10 +1027,8 @@ for (u in 1:250) {
 fnn_mean4 = mean(RMSE_fnn)
 lm_mean4 = mean(RMSE_lm)
 
-fnn_sd4 = sd(RMSE_fnn)
-lm_sd4 = sd(RMSE_lm)
-
-# 
+fnn_sd4 = sd(RMSE_fnn)/sqrt(250)
+lm_sd4 = sd(RMSE_lm)/sqrt(250)
 
 # Times
 fnn_time_sim4 = sum(fnn_time)
@@ -978,6 +1048,30 @@ ggplot(stack(sqrt_RMSE4), aes(x = ind, y = values)) +
   ylab("IMSE") +
   theme(axis.text=element_text(size=14, face= "bold"),
         axis.title=element_text(size=14, face="bold"))
+
+# Running paired t-test
+
+# Selecting data sets
+FNN_ttest = RMSE_fnn
+FLM_ttest = RMSE_lm
+
+# Calculating difference
+d = FNN_ttest - FLM_ttest
+
+# Mean difference
+mean_d = mean(d)
+
+# SE
+se_d = sd(d)/sqrt(length(FNN_ttest))
+
+# T value
+T_value = mean_d/se_d
+
+# df
+df_val = length(FNN_ttest) - 1
+
+# p-value
+p_value_sim4 = pt(abs(T_value), df_val, lower.tail = F)
 
 
 # Check 1
