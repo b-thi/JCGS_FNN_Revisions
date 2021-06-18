@@ -646,6 +646,6 @@ ablation_plots[[6]] = decayrate_ablation_df %>%
 
 # Final Plot
 n_plots <- length(ablation_plots)
-nCol <- floor(sqrt(n_plots))
+nCol <- 3
 do.call("grid.arrange", c(ablation_plots, ncol = nCol))
 

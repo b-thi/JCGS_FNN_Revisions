@@ -312,7 +312,7 @@ fnn_plot = current_fnn %>%
 # Final Plot
 list_plots = list(cnn_plot, nn_plot, fnn_plot)
 n_plots <- length(list_plots)
-nCol <- floor(sqrt(n_plots))
+nCol <- 1
 do.call("grid.arrange", c(list_plots, ncol = nCol)) # Saved as 10 x 13 PDF file
 
 ### Creating Actual v. Predicted Plot

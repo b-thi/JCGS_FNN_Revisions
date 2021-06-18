@@ -1625,13 +1625,18 @@ beta_lm_weather <- function(x, c){
   return(value)
 }
 
-
-beta_fnn_weather <- function(x, c){
+beta_fnn_weather_eg <- function(x, c){
   value <- c[1] + c[2]*sin(1*2*pi*x/365) + c[3]*cos(1*2*pi*x/365) +
     c[4]*sin(2*2*pi*x/365) + c[5]*cos(2*2*pi*x/365) + c[6]*sin(3*2*pi*x/365) +
     c[7]*cos(3*2*pi*x/365) + c[8]*sin(4*2*pi*x/365) + c[9]*cos(4*2*pi*x/365) +
     c[10]*sin(5*2*pi*x/365) + c[11]*cos(5*2*pi*x/365) + c[12]*sin(6*2*pi*x/365) +
     c[13]*cos(5*2*pi*x/365)
+  return(value)
+}
+
+beta_fnn_weather <- function(x, c){
+  value <- c[1] + c[2]*sin(1*2*pi*x/365) + c[3]*cos(1*2*pi*x/365) +
+    c[4]*sin(2*2*pi*x/365) + c[5]*cos(2*2*pi*x/365) 
   return(value)
 }
 

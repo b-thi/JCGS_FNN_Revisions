@@ -819,7 +819,7 @@ for(i in 1:ncol(t_test_df)) {
   Other_ttest = t_test_df[, i]
   
   # Calculating difference
-  d = FNN_ttest - Other_ttest
+  d = Other_ttest - FNN_ttest
   
   # Mean difference
   mean_d = mean(d)
@@ -839,8 +839,8 @@ for(i in 1:ncol(t_test_df)) {
   # Storing
   p_value_df_sim1[i, 1] = p_value
   p_value_df_sim1[i, 2] = T_value
-  p_value_df_sim1[i, 3] = mean_d - T_value*se_d
-  p_value_df_sim1[i, 4] = mean_d + T_value*se_d
+  p_value_df_sim1[i, 3] = mean_d - 1.96*se_d
+  p_value_df_sim1[i, 4] = mean_d + 1.96*se_d
 }
 
 
@@ -1599,7 +1599,7 @@ for(i in 1:ncol(t_test_df)) {
   Other_ttest = t_test_df[, i]
   
   # Calculating difference
-  d = FNN_ttest - Other_ttest
+  d = Other_ttest - FNN_ttest
   
   # Mean difference
   mean_d = mean(d)
@@ -1619,8 +1619,8 @@ for(i in 1:ncol(t_test_df)) {
   # Storing
   p_value_df_sim2[i, 1] = p_value
   p_value_df_sim2[i, 2] = T_value
-  p_value_df_sim2[i, 3] = mean_d - T_value*se_d
-  p_value_df_sim2[i, 4] = mean_d + T_value*se_d
+  p_value_df_sim2[i, 3] = mean_d - 1.96*se_d
+  p_value_df_sim2[i, 4] = mean_d + 1.96*se_d
 }
 
 
@@ -2379,7 +2379,7 @@ for(i in 1:ncol(t_test_df)) {
   Other_ttest = t_test_df[, i]
   
   # Calculating difference
-  d = FNN_ttest - Other_ttest
+  d = Other_ttest - FNN_ttest
   
   # Mean difference
   mean_d = mean(d)
@@ -2399,8 +2399,8 @@ for(i in 1:ncol(t_test_df)) {
   # Storing
   p_value_df_sim3[i, 1] = p_value
   p_value_df_sim3[i, 2] = T_value
-  p_value_df_sim3[i, 3] = mean_d - T_value*se_d
-  p_value_df_sim3[i, 4] = mean_d + T_value*se_d
+  p_value_df_sim3[i, 3] = mean_d - 1.96*se_d
+  p_value_df_sim3[i, 4] = mean_d + 1.96*se_d
 }
 
 
@@ -3154,7 +3154,7 @@ for(i in 1:ncol(t_test_df)) {
   Other_ttest = t_test_df[, i]
   
   # Calculating difference
-  d = FNN_ttest - Other_ttest
+  d = Other_ttest - FNN_ttest
   
   # Mean difference
   mean_d = mean(d)
@@ -3174,8 +3174,8 @@ for(i in 1:ncol(t_test_df)) {
   # Storing
   p_value_df_sim4[i, 1] = p_value
   p_value_df_sim4[i, 2] = T_value
-  p_value_df_sim4[i, 3] = mean_d - T_value*se_d
-  p_value_df_sim4[i, 4] = mean_d + T_value*se_d
+  p_value_df_sim4[i, 3] = mean_d - 1.96*se_d
+  p_value_df_sim4[i, 4] = mean_d + 1.96*se_d
 }
 
 ################################################################################

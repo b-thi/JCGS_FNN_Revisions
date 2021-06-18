@@ -92,8 +92,7 @@ fnn_weather = FNN(resp = total_prec,
 coefficients_fnn = rowMeans(get_weights(fnn_weather$model)[[1]])
 
 # Setting up data set
-beta_coef_fnn <- data.frame(time = seq(1, 365, 1), 
-                           beta_evals = beta_fnn_weather(seq(1, 365, 1), coefficients_fnn))
+beta_coef_fnn <- data.frame(time = seq(1, 365, 1), beta_evals = beta_fnn_weather_eg(seq(1, 365, 1), coefficients_fnn))
 
 #### Putting Together #####
 beta_coef_fnn %>% 
@@ -134,7 +133,7 @@ beta_coef_fnn %>%
 # )
 
 # Loading data
-load("bike.RData")
+load("Data/bike.RData")
 
 # Obtaining response
 rentals = log10(bike$y)
@@ -188,7 +187,7 @@ beta_coef_lm <- data.frame(time = seq(1, 24, 0.1),
 
 #######################################
 
-# Running FNN for weather
+# Running FNN for bike
 # alt: 32, 3
 fnn_bike <- FNN(resp = rentals, 
                     func_cov = bike_data, 

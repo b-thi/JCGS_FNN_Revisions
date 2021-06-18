@@ -56,7 +56,7 @@ weather_fdata = fdata(daily$tempav, argvals = 1:365, rangeval = c(1, 365))
 temp_data[,,1] = temp_fd$coefs
 
 # Choosing fold number
-num_folds = 5
+num_folds = 10
 
 # Creating folds
 fold_ind = createFolds(total_prec, k = num_folds)
@@ -74,32 +74,30 @@ error_mat_nn = matrix(nrow = num_folds, ncol = 1)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 1)
 
 # Doing pre-processing of neural networks
-if(dim(temp_data)[3] > 1){
-  # Now, let's pre-process
-  pre_dat = FNN_First_Layer(func_cov = temp_data,
-                            basis_choice = c("fourier", "fourier", "fourier"),
-                            num_basis = c(5, 7, 9),
-                            domain_range = list(c(min(timepts), max(timepts)), 
-                                                c(min(timepts), max(timepts)), 
-                                                c(min(timepts), max(timepts))),
-                            covariate_scaling = T,
-                            raw_data = F)
-  
-} else {
-  
-  # Now, let's pre-process
-  pre_dat = FNN_First_Layer(func_cov = temp_data,
-                            basis_choice = c("bspline"),
-                            num_basis = c(19),
-                            domain_range = list(c(min(timepts), max(timepts))),
-                            covariate_scaling = T,
-                            raw_data = F)
-}
+# if(dim(temp_data)[3] > 1){
+#   # Now, let's pre-process
+#   pre_dat = FNN_First_Layer(func_cov = temp_data,
+#                             basis_choice = c("fourier", "fourier", "fourier"),
+#                             num_basis = c(5, 7, 9),
+#                             domain_range = list(c(min(timepts), max(timepts)), 
+#                                                 c(min(timepts), max(timepts)), 
+#                                                 c(min(timepts), max(timepts))),
+#                             covariate_scaling = T,
+#                             raw_data = F)
+#   
+# } else {
+#   
+#   # Now, let's pre-process
+#   pre_dat = FNN_First_Layer(func_cov = temp_data,
+#                             basis_choice = c("bspline"),
+#                             num_basis = c(19),
+#                             domain_range = list(c(min(timepts), max(timepts))),
+#                             covariate_scaling = T,
+#                             raw_data = F)
+# }
 
-fd_test = Data2fd(timepts, t(pre_dat$data), tempbasis65)
-
-# Functional weights
-func_weights = matrix(nrow = num_folds, ncol = 5)
+# Functional weights & initializations
+func_weights = list()
 flm_weights = list()
 nn_training_plot <- list()
 cnn_training_plot <- list()
@@ -123,14 +121,14 @@ for (i in 1:num_folds) {
   test_y = total_prec[fold_ind[[i]]]
   
   # Setting up for FNN
-  # weather_data_train <- array(dim = c(65, ncol(temp_data) - length(fold_ind[[i]]), 1))
-  # weather_data_test <- array(dim = c(65, length(fold_ind[[i]]), 1))
-  # weather_data_train[,,1] = temp_data[, -fold_ind[[i]], ]
-  # weather_data_test[,,1] = temp_data[, fold_ind[[i]], ]
+  weather_data_train <- array(dim = c(65, ncol(temp_data) - length(fold_ind[[i]]), 1))
+  weather_data_test <- array(dim = c(65, length(fold_ind[[i]]), 1))
+  weather_data_train[,,1] = temp_data[, -fold_ind[[i]], ]
+  weather_data_test[,,1] = temp_data[, fold_ind[[i]], ]
   
   # Setting up for FNN
-  pre_train = pre_dat$data[-fold_ind[[i]], ]
-  pre_test = pre_dat$data[fold_ind[[i]], ]
+  # pre_train = pre_dat$data[-fold_ind[[i]], ]
+  # pre_test = pre_dat$data[fold_ind[[i]], ]
   
   ###################################
   # Running usual functional models #
@@ -141,6 +139,7 @@ for (i in 1:num_folds) {
   func_basis = fregre.basis.cv(train_x, train_y, type.basis = "fourier",
                                lambda=l, type.CV = GCV.S, par.CV = list(trim=0.15))
   pred_basis = predict(func_basis[[1]], test_x)
+  flm_weights[[i]] = func_basis$fregre.basis$coefficients
   
   # Functional Principal Component Regression (No Penalty)
   func_pc = fregre.pc.cv(train_x, train_y, 6)
@@ -173,7 +172,7 @@ for (i in 1:num_folds) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  min_error_fnn = 99999
+  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(t(daily$tempav)[-fold_ind[[i]],])
@@ -183,7 +182,7 @@ for (i in 1:num_folds) {
   train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
   
   # Learn rates grid
-  num_initalizations = 1
+  num_initalizations = 10
   
   ########################################
   # Running Convolutional Neural Network #
@@ -204,28 +203,24 @@ for (i in 1:num_folds) {
     # setting up model
     model_cnn <- keras_model_sequential()
     model_cnn %>% 
-      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu", 
+      layer_conv_1d(filters = 32, kernel_size = 2, activation = "relu", 
                     input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
       layer_max_pooling_1d(pool_size = 2) %>%
-      layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+      layer_conv_1d(filters = 32, kernel_size = 2, activation = "relu") %>%
       layer_flatten() %>% 
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 8, activation = 'sigmoid') %>%
       layer_dense(units = 1, activation = 'sigmoid')
     
     # Setting parameters for NN model
     model_cnn %>% compile(
-      optimizer = optimizer_adam(lr = 0.00005), 
+      optimizer = optimizer_adam(lr = 0.05), 
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
     
     # Early stopping
-    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 50)
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
     
     # Setting up data
     reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
@@ -236,7 +231,7 @@ for (i in 1:num_folds) {
     # Training CNN model
     history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
                                      train_y[train_split], 
-                                     epochs = 5000,  
+                                     epochs = 250,  
                                      validation_split = 0.2,
                                      callbacks = list(early_stop),
                                      verbose = 0)
@@ -289,28 +284,24 @@ for (i in 1:num_folds) {
     # setting up model
     model_nn <- keras_model_sequential()
     model_nn %>% 
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
+      layer_dense(units = 16, activation = 'relu') %>%
+      layer_dense(units = 8, activation = 'sigmoid') %>%
       layer_dense(units = 1, activation = 'sigmoid')
     
     # Setting parameters for NN model
     model_nn %>% compile(
-      optimizer = optimizer_adam(lr = 0.00005), 
+      optimizer = optimizer_adam(lr = 0.05), 
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
     
     # Early stopping
-    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 50)
+    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
     
     # Training FNN model
     history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
                                    train_y[train_split], 
-                                   epochs = 5000,  
+                                   epochs = 250,  
                                    validation_split = 0.2,
                                    callbacks = list(early_stop),
                                    verbose = 0)
@@ -353,89 +344,123 @@ for (i in 1:num_folds) {
   #   quiet = T
   # )
   
-  # Setting up FNN model
-  for(u in 1:num_initalizations){
-    
-    # setting up model
-    model_fnn <- keras_model_sequential()
-    model_fnn %>% 
-      # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu",
-      #               input_shape = c(ncol(pre_train[train_split,]), 1)) %>%
-      # layer_max_pooling_1d(pool_size = 2) %>%
-      # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
-      # layer_flatten() %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 64, activation = 'relu') %>%
-      layer_dense(units = 1, activation = 'sigmoid')
-    
-    # Setting parameters for FNN model
-    model_fnn %>% compile(
-      optimizer = optimizer_adam(lr = 0.00005), 
-      loss = 'mse',
-      metrics = c('mean_squared_error')
-    )
-    
-    # Early stopping
-    early_stop <- callback_early_stopping(monitor = "val_loss", patience = 50)
-    
-    # Setting up data
-    reshaped_data_tensor_train = array(dim = c(nrow(pre_train[train_split,]), ncol(pre_train[train_split,]), 1))
-    reshaped_data_tensor_train[, , 1] = as.matrix(pre_train[train_split,])
-    reshaped_data_tensor_test = array(dim = c(nrow(pre_train[-train_split,]), ncol(pre_train[-train_split,]), 1))
-    reshaped_data_tensor_test[, , 1] = as.matrix(pre_train[-train_split,])
-    
-    # Training FNN model
-    # history_fnn <- model_fnn %>% fit(reshaped_data_tensor_train,
-    #                  train_y[train_split],
-    #                  epochs = 5000,
-    #                  validation_split = 0.2,
-    #                  callbacks = list(early_stop),
-    #                  verbose = 0)
-    
-    # Training FNN model
-    history_fnn = model_fnn %>% fit(pre_train[train_split,],
-                      train_y[train_split],
-                      epochs = 5000,
-                      validation_split = 0.2,
-                      callbacks = list(early_stop),
-                      verbose = 1)
-    
-    # Predictions
-    test_predictions <- model_fnn %>% predict(pre_train[-train_split,])
-    # test_predictions <- model_fnn %>% predict(reshaped_data_tensor_test)
-    
-    # Storing
-    # error_fnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
-    error_fnn_train = mean((test_predictions - train_y[-train_split])^2, na.rm = T)
-    
-    # Checking error
-    if(error_fnn_train < min_error_fnn){
-      
-      # Setting up test data
-      reshaped_data_tensor_test_final = array(dim = c(nrow(pre_test), ncol(pre_test), 1))
-      reshaped_data_tensor_test_final[, , 1] = as.matrix(pre_test)
-      
-      # Predictions
-      pred_fnn <- model_fnn %>% predict(pre_test)
-      # pred_fnn <- model_fnn %>% predict(reshaped_data_tensor_test_final)
-      
-      # Error
-      error_fnn = mean((c(pred_fnn) - test_y)^2, na.rm = T)
-      
-      # Saving training plots
-      fnn_training_plot[[i]] = as.data.frame(history_fnn)
-      
-      # New Min Error
-      min_error_fnn = error_fnn_train
-      
-    }
-    
-  }
+  # # Setting up FNN model
+  # for(u in 1:num_initalizations){
+  #   
+  #   # setting up model
+  #   model_fnn <- keras_model_sequential()
+  #   model_fnn %>% 
+  #     # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu",
+  #     #               input_shape = c(ncol(pre_train[train_split,]), 1)) %>%
+  #     # layer_max_pooling_1d(pool_size = 2) %>%
+  #     # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
+  #     # layer_flatten() %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 64, activation = 'relu') %>%
+  #     layer_dense(units = 1, activation = 'sigmoid')
+  #   
+  #   # Setting parameters for FNN model
+  #   model_fnn %>% compile(
+  #     optimizer = optimizer_adam(lr = 0.00005), 
+  #     loss = 'mse',
+  #     metrics = c('mean_squared_error')
+  #   )
+  #   
+  #   # Early stopping
+  #   early_stop <- callback_early_stopping(monitor = "val_loss", patience = 50)
+  #   
+  #   # Setting up data
+  #   reshaped_data_tensor_train = array(dim = c(nrow(pre_train[train_split,]), ncol(pre_train[train_split,]), 1))
+  #   reshaped_data_tensor_train[, , 1] = as.matrix(pre_train[train_split,])
+  #   reshaped_data_tensor_test = array(dim = c(nrow(pre_train[-train_split,]), ncol(pre_train[-train_split,]), 1))
+  #   reshaped_data_tensor_test[, , 1] = as.matrix(pre_train[-train_split,])
+  #   
+  #   # Training FNN model
+  #   # history_fnn <- model_fnn %>% fit(reshaped_data_tensor_train,
+  #   #                  train_y[train_split],
+  #   #                  epochs = 5000,
+  #   #                  validation_split = 0.2,
+  #   #                  callbacks = list(early_stop),
+  #   #                  verbose = 0)
+  #   
+  #   # Training FNN model
+  #   history_fnn = model_fnn %>% fit(pre_train[train_split,],
+  #                     train_y[train_split],
+  #                     epochs = 5000,
+  #                     validation_split = 0.2,
+  #                     callbacks = list(early_stop),
+  #                     verbose = 1)
+  #   
+  #   # Predictions
+  #   test_predictions <- model_fnn %>% predict(pre_train[-train_split,])
+  #   # test_predictions <- model_fnn %>% predict(reshaped_data_tensor_test)
+  #   
+  #   # Storing
+  #   # error_fnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
+  #   error_fnn_train = mean((test_predictions - train_y[-train_split])^2, na.rm = T)
+  #   
+  #   # Checking error
+  #   if(error_fnn_train < min_error_fnn){
+  #     
+  #     # Setting up test data
+  #     reshaped_data_tensor_test_final = array(dim = c(nrow(pre_test), ncol(pre_test), 1))
+  #     reshaped_data_tensor_test_final[, , 1] = as.matrix(pre_test)
+  #     
+  #     # Predictions
+  #     pred_fnn <- model_fnn %>% predict(pre_test)
+  #     # pred_fnn <- model_fnn %>% predict(reshaped_data_tensor_test_final)
+  #     
+  #     # Error
+  #     error_fnn = mean((c(pred_fnn) - test_y)^2, na.rm = T)
+  #     
+  #     # Saving training plots
+  #     fnn_training_plot[[i]] = as.data.frame(history_fnn)
+  #     
+  #     # New Min Error
+  #     min_error_fnn = error_fnn_train
+  #     
+  #   }
+  #   
+  # }
+  
+  # Running FNN for weather
+  fnn_example = FNN(resp = train_y, 
+                    func_cov = weather_data_train, 
+                    scalar_cov = NULL,
+                    basis_choice = c("fourier"), 
+                    num_basis = 5,
+                    hidden_layers = 2,
+                    neurons_per_layer = c(16, 8),
+                    activations_in_layers = c("relu", "sigmoid"),
+                    domain_range = list(c(1, 365)),
+                    epochs = 250,
+                    output_size = 1,
+                    loss_choice = "mse",
+                    metric_choice = list("mean_squared_error"),
+                    val_split = 0.2,
+                    patience_param = 25,
+                    learn_rate = 0.05,
+                    early_stop = T,
+                    print_info = F)
+  
+  # Predicting using FNN for weather
+  pred_fnn = FNN_Predict(fnn_example,
+                         weather_data_test, 
+                         scalar_cov = NULL,
+                         basis_choice = c("fourier"), 
+                         num_basis = c(5),
+                         domain_range = list(c(1, 365)))
 
+  # Weights
+  func_weights[[i]] = get_weights(fnn_example$model)[[1]]
+  
+  # Training plots
+  fnn_training_plot[[i]] = data.frame(epoch = 1:250, value = c(fnn_example$per_iter_info$val_loss, rep(NA, 250 - length(fnn_example$per_iter_info$val_loss))))
+  
   
   ###################
   # Storing Results #
@@ -536,7 +561,7 @@ for (i in 1:num_folds) {
   # Filtering
   current_cnn = current_cnn %>% dplyr::filter(metric == "loss" & data == "validation")
   current_nn = current_nn %>% dplyr::filter(metric == "loss" & data == "validation")
-  current_fnn = current_fnn %>% dplyr::filter(metric == "loss" & data == "validation")
+  current_fnn = current_fnn
   
   # Creating plots
   cnn_plot = current_cnn %>% 
@@ -583,34 +608,99 @@ for (i in 1:num_folds) {
 
 # Final Plot
 n_plots <- length(training_plots_weather)
-nCol <- floor(sqrt(n_plots))
+nCol <- 3
 do.call("grid.arrange", c(training_plots_weather, ncol = nCol))
 
 # Functional Weight Plot
 
-# Setting up data set
-beta_coef_fnn <- data.frame(time = seq(1, 24, 0.1), 
-                            beta_evals = beta_fnn_weather(seq(1, 24, 0.1), colMeans(func_weights)))
+# Getting weights
+processed_weights = do.call("rbind", lapply(func_weights, function(x){return(rowMeans(x))}))
 
-# Plot
-beta_coef_fnn %>% 
-  ggplot(aes(x = time, y = beta_evals, color='blue')) +
-  geom_line(size = 1.5) + 
-  theme_bw() +
-  xlab("Time") +
-  ylab("beta(t)") +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  theme(axis.text=element_text(size=14, face = "bold"),
-        axis.title=element_text(size=14,face="bold")) +
-  scale_colour_manual(name = 'Model: ', 
-                      values =c('blue'='blue'), 
-                      labels = c('Functional Neural Network')) +
-  theme(legend.background = element_rect(fill="lightblue",
-                                         size=0.5, linetype="solid", 
-                                         colour ="darkblue"),
-        legend.position = "bottom",
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
+# initializing
+weather_fnc_plots = list()
+
+# looping to create plots
+for (i in 1:num_folds) {
+  
+  # Setting up data set
+  beta_coef_fnn <- data.frame(time = seq(1, 365, 1), beta_evals = beta_fnn_weather(seq(1, 365, 1), processed_weights[i, ]))
+  
+  # Plot
+  weather_fnc_plots[[i]] = beta_coef_fnn %>% 
+    ggplot(aes(x = time, y = beta_evals)) +
+    geom_line(size = 1.5, color='blue') + 
+    theme_bw() +
+    xlab("Time") +
+    ylab("beta(t) [FNN Weather]") +
+    ylim(-0.6, 0.6) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text=element_text(size=14, face = "bold"),
+          axis.title=element_text(size=14,face="bold"))
+}
+
+# Final Plot
+n_plots <- length(weather_fnc_plots)
+nCol <- 2
+do.call("grid.arrange", c(weather_fnc_plots, ncol = nCol))
+
+# Functional Linear Model Plot
+
+# Getting weights
+processed_weights_lm = lapply(flm_weights, function(x){return(x[-1, 1])})
+
+# initializing
+weather_lm_plots = list()
+current_max = 0
+
+# Max length
+for (i in 1:length(processed_weights_lm)) {
+  
+  # Pulling weights
+  current = processed_weights_lm[[i]]
+  
+  # Length
+  current_max = max(current_max, length(current))
+  
+}
+
+# Appending
+for (i in 1:length(processed_weights_lm)) {
+  
+  if(length(processed_weights_lm[[i]]) < current_max){
+    
+    processed_weights_lm[[i]] = c(processed_weights_lm[[i]], rep(0, current_max - length(processed_weights_lm[[i]])))
+    
+  }
+  
+}
+
+# Now creating data frame
+processed_weights_lm_cleaned = do.call("rbind", processed_weights_lm)
+
+# looping to create plots
+for (i in 1:num_folds) {
+  
+  # Setting up data set
+  beta_coef_fnn <- data.frame(time = seq(1, 165, 1), beta_evals = beta_lm_weather(seq(1, 365, 1), processed_weights_lm_cleaned[i, ]))
+  
+  # Plot
+  weather_lm_plots[[i]] = beta_coef_fnn %>% 
+    ggplot(aes(x = time, y = beta_evals)) +
+    geom_line(size = 1.5, color='red') + 
+    theme_bw() +
+    xlab("Time") +
+    ylab("beta(t) [FLM Weather]") +
+    ylim(-2, 2) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text=element_text(size=14, face = "bold"),
+          axis.title=element_text(size=14,face="bold"))
+}
+
+# Final Plot
+n_plots <- length(weather_lm_plots)
+nCol <- 2
+do.call("grid.arrange", c(weather_lm_plots, ncol = nCol))
+
 
 # Running paired t-tests
 
@@ -639,7 +729,7 @@ for(i in 1:ncol(t_test_df)) {
   Other_ttest = t_test_df[, i]
   
   # Calculating difference
-  d = FNN_ttest - Other_ttest
+  d = Other_ttest - FNN_ttest
   
   # Mean difference
   mean_d = mean(d)
@@ -659,6 +749,6 @@ for(i in 1:ncol(t_test_df)) {
   # Storing
   p_value_df[i, 1] = p_value
   p_value_df[i, 2] = T_value
-  p_value_df[i, 3] = mean_d - T_value*se_d
-  p_value_df[i, 4] = mean_d + T_value*se_d
+  p_value_df[i, 3] = mean_d - 1.96*se_d
+  p_value_df[i, 4] = mean_d + 1.96*se_d
 }
