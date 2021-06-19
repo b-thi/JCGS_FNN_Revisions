@@ -128,12 +128,22 @@ i = 1
 
 ### NN
 
-# Setting up FNN model
+# Setting seeds
+set.seed(17)
+use_session_with_seed(
+  17,
+  disable_gpu = F,
+  disable_parallel_cpu = F,
+  quiet = T
+)
+
+# Setting up CNN model
 for(u in 1:num_initalizations){
   
   # setting up model
   model_nn <- keras_model_sequential()
   model_nn %>% 
+    layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
@@ -149,12 +159,12 @@ for(u in 1:num_initalizations){
   )
   
   # Early stopping
-  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
+  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 35)
   
   # Training FNN model
   history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
                                  tecResp_train[train_split], 
-                                 epochs = 3000,  
+                                 epochs = 300,  
                                  validation_split = 0.15,
                                  callbacks = list(early_stop),
                                  verbose = 0)
@@ -188,7 +198,16 @@ for(u in 1:num_initalizations){
 
 ### CNN
 
-# Setting up FNN model
+# Setting seeds
+set.seed(17)
+use_session_with_seed(
+  17,
+  disable_gpu = F,
+  disable_parallel_cpu = F,
+  quiet = T
+)
+
+# Setting up CNN model
 for(u in 1:num_initalizations){
   
   # setting up model
@@ -199,6 +218,7 @@ for(u in 1:num_initalizations){
     layer_max_pooling_1d(pool_size = 2) %>%
     layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
     layer_flatten() %>% 
+    layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
     layer_dense(units = 24, activation = 'relu') %>%
@@ -220,12 +240,12 @@ for(u in 1:num_initalizations){
   reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
   
   # Early stopping
-  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 100)
+  early_stop <- callback_early_stopping(monitor = "val_loss", patience = 35)
   
   # Training CNN model
   history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
                                    tecResp_train[train_split], 
-                                   epochs = 3000,  
+                                   epochs = 300,  
                                    validation_split = 0.15,
                                    callbacks = list(early_stop),
                                    verbose = 0)
@@ -260,8 +280,6 @@ for(u in 1:num_initalizations){
   
 }
 
-tecator_comp$per_iter_info$loss
-
 ### Creating Training Plots ###
 
 # Saving relevant
@@ -292,7 +310,7 @@ nn_plot = current_nn %>%
   xlab("Epoch") +
   ylab("Validation Loss") +
   xlim(c(0, 1000)) +
-  ggtitle(paste("Conventional Neural Network; Tecator Example")) +
+  ggtitle(paste("Neural Network; Tecator Example")) +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(axis.text=element_text(size=12, face = "bold"),
         axis.title=element_text(size=12,face="bold"))

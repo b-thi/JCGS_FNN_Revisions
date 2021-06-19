@@ -8,7 +8,7 @@
 source("FNN.R")
 
 # Loading data
-load("bike.RData")
+load("Data/bike.RData")
 
 # Obtaining response
 rentals = log10(bike$y)

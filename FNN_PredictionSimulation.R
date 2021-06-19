@@ -522,7 +522,6 @@ for (u in 1:sim_num) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(sim_data[-ind,])
@@ -537,6 +536,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up CNN model
   for(i in 1:num_initalizations){
@@ -610,6 +617,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Conventional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up NN model
   for(i in 1:num_initalizations){
@@ -1303,7 +1318,6 @@ for (u in 1:sim_num) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(sim_data[-ind,])
@@ -1318,6 +1332,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up CNN model
   for(i in 1:num_initalizations){
@@ -1391,6 +1413,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Conventional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up NN model
   for(i in 1:num_initalizations){
@@ -2082,7 +2112,6 @@ for (u in 1:sim_num) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(sim_data[-ind,])
@@ -2097,6 +2126,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up CNN model
   for(i in 1:num_initalizations){
@@ -2170,6 +2207,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Conventional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up NN model
   for(i in 1:num_initalizations){
@@ -2862,7 +2907,6 @@ for (u in 1:sim_num) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(sim_data[-ind,])
@@ -2877,6 +2921,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Convolutional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up CNN model
   for(i in 1:num_initalizations){
@@ -2950,6 +3002,14 @@ for (u in 1:sim_num) {
   ########################################
   # Running Conventional Neural Network #
   ########################################
+  
+  # Setting seeds
+  use_session_with_seed(
+    u,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up NN model
   for(i in 1:num_initalizations){

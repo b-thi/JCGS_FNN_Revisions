@@ -6,12 +6,6 @@
 ###### MAIN CODE #######
 
 ##### Libraries #####
-library(fda)
-library(fda.usc)
-library(tidyverse)
-library(gridExtra)
-library(ggpubr)
-library(reshape)
 source("FNN.R")
 
 #############################################################
@@ -276,7 +270,13 @@ T_value = mean_d/se_d
 df_val = length(FNN_ttest) - 1
 
 # p-value
-p_value_sim1 = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim1 = matrix(nrow = 1, ncol = 4)
+rownames(p_value_sim1) = c("FNN v. FLM")
+colnames(p_value_sim1) = c("P Value", "T Value", "Lower Bound", "Upper Upper Bound")
+p_value_sim1[, 1] = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim1[, 2] = T_value
+p_value_sim1[, 3] = mean_d - 1.96*se_d
+p_value_sim1[, 4] = mean_d + 1.96*se_d
 
 
 #############################################################
@@ -542,7 +542,13 @@ T_value = mean_d/se_d
 df_val = length(FNN_ttest) - 1
 
 # p-value
-p_value_sim2 = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim2 = matrix(nrow = 1, ncol = 4)
+rownames(p_value_sim2) = c("FNN v. FLM")
+colnames(p_value_sim2) = c("P Value", "T Value", "Lower Bound", "Upper Upper Bound")
+p_value_sim2[, 1] = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim2[, 2] = T_value
+p_value_sim2[, 3] = mean_d - 1.96*se_d
+p_value_sim2[, 4] = mean_d + 1.96*se_d
 
 #############################################################
 # 3 - Sigmoid 
@@ -807,7 +813,13 @@ T_value = mean_d/se_d
 df_val = length(FNN_ttest) - 1
 
 # p-value
-p_value_sim3 = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim3 = matrix(nrow = 1, ncol = 4)
+rownames(p_value_sim3) = c("FNN v. FLM")
+colnames(p_value_sim3) = c("P Value", "T Value", "Lower Bound", "Upper Upper Bound")
+p_value_sim3[, 1] = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim3[, 2] = T_value
+p_value_sim3[, 3] = mean_d - 1.96*se_d
+p_value_sim3[, 4] = mean_d + 1.96*se_d
 
 #############################################################
 # 4 - Log 
@@ -1056,7 +1068,7 @@ FNN_ttest = RMSE_fnn
 FLM_ttest = RMSE_lm
 
 # Calculating difference
-d = FNN_ttest - FLM_ttest
+d = FLM_ttest - FNN_ttest
 
 # Mean difference
 mean_d = mean(d)
@@ -1071,7 +1083,13 @@ T_value = mean_d/se_d
 df_val = length(FNN_ttest) - 1
 
 # p-value
-p_value_sim4 = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim4 = matrix(nrow = 1, ncol = 4)
+rownames(p_value_sim4) = c("FNN v. FLM")
+colnames(p_value_sim4) = c("P Value", "T Value", "Lower Bound", "Upper Upper Bound")
+p_value_sim4[, 1] = pt(abs(T_value), df_val, lower.tail = F)
+p_value_sim4[, 2] = T_value
+p_value_sim4[, 3] = mean_d - 1.96*se_d
+p_value_sim4[, 4] = mean_d + 1.96*se_d
 
 
 # Check 1

@@ -26,8 +26,8 @@ use_session_with_seed(
 # Weather Data Set           #
 ##############################
 
-# Setting up data
-data("daily")
+# Loading data
+daily = readRDS("Data/daily.RDS")
 
 # Obtaining response
 total_prec = range_01(apply(daily$precav, 2, sum))
@@ -99,9 +99,8 @@ beta_coef_fnn %>%
   ggplot(aes(x = time, y = -beta_evals, color = "blue")) +
   geom_line(size = 1.5) +
   geom_line(data = beta_coef_lm, 
-            aes(x = time, y = beta_evals, color = "black"),
-            size = 1.2,
-            linetype = "dashed") + 
+            aes(x = time, y = beta_evals, color = "purple"),
+            size = 1.2) + 
   theme_bw() +
   xlab("Time") +
   ylab("beta(t)") +
@@ -109,14 +108,14 @@ beta_coef_fnn %>%
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold")) +
   scale_colour_manual(name = 'Model: ', 
-                      values =c('black'='black','blue'='blue'), 
-                      labels = c('Functional Linear Model', 'Functional Neural Network')) +
+                      values =c('purple'='purple','blue'='blue'), 
+                      labels = c('Functional Neural Network', 'Functional Linear Model')) +
   theme(legend.background = element_rect(fill="lightblue",
                                          size=0.5, linetype="solid", 
                                          colour ="darkblue"),
         legend.position = "bottom",
         legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
+        legend.text = element_text(size = 12)) # pdf 12 x 4
 
 
 ##############################
@@ -237,11 +236,11 @@ beta_coef_fnn %>%
                                            colour ="darkblue"),
         legend.position = "bottom",
         legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
+        legend.text = element_text(size = 12)) # pdf 6 x 4
 
 beta_coef_lm %>% 
-  ggplot(aes(x = time, y = beta_evals, color='black')) +
-  geom_line(size = 1.5, linetype = "dashed") + 
+  ggplot(aes(x = time, y = beta_evals, color='purple')) +
+  geom_line(size = 1.5, color = 'purple') + 
   theme_bw() +
   xlab("Time") +
   ylab("beta(t)") +
@@ -249,7 +248,7 @@ beta_coef_lm %>%
   theme(axis.text=element_text(size=14, face = "bold"),
         axis.title=element_text(size=14,face="bold")) +
   scale_colour_manual(name = 'Model: ', 
-                      values =c('black'='black'), 
+                      values =c('purple'='purple'), 
                       labels = c('Functional Linear Model')) +
   theme(legend.background = element_rect(fill="lightblue",
                                          size=0.5, linetype="solid", 

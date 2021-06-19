@@ -29,9 +29,9 @@ K$clear_session()
 options(warn=-1)
 
 # Setting seeds
-set.seed(2020)
+set.seed(1994)
 use_session_with_seed(
-  2020,
+  1994,
   disable_gpu = F,
   disable_parallel_cpu = F,
   quiet = T
@@ -140,27 +140,27 @@ for (i in 1:num_folds) {
                                lambda=l, type.CV = GCV.S, par.CV = list(trim=0.15))
   pred_basis = predict(func_basis[[1]], test_x)
   flm_weights[[i]] = func_basis$fregre.basis$coefficients
-  
+
   # Functional Principal Component Regression (No Penalty)
   func_pc = fregre.pc.cv(train_x, train_y, 6)
   pred_pc = predict(func_pc$fregre.pc, test_x)
-  
+
   # Functional Principal Component Regression (2nd Deriv Penalization)
   func_pc2 = fregre.pc.cv(train_x, train_y, 6, lambda=TRUE, P=c(0,0,1))
   pred_pc2 = predict(func_pc2$fregre.pc, test_x)
-  
+
   # Functional Principal Component Regression (Ridge Regression)
   func_pc3 = fregre.pc.cv(train_x, train_y, 1:6, lambda=TRUE, P=1)
   pred_pc3 = predict(func_pc3$fregre.pc, test_x)
-  
+
   # Functional Partial Least Squares Regression (No Penalty)
   func_pls = fregre.pls(train_x, train_y, 1:6)
   pred_pls = predict(func_pls, test_x)
-  
+
   # Functional Partial Least Squares Regression (2nd Deriv Penalization)
   func_pls2 = fregre.pls.cv(train_x, train_y, 6, lambda=0:5, P=c(0,0,1))
   pred_pls2 = predict(func_pls2$fregre.pls, test_x)
-  
+
   # Functional Non-Parametric Regression
   func_np = fregre.np(train_x, train_y, Ker = AKer.tri, metric = semimetric.deriv)
   pred_np = predict(func_np, test_x)
@@ -172,7 +172,6 @@ for (i in 1:num_folds) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(t(daily$tempav)[-fold_ind[[i]],])
@@ -189,146 +188,144 @@ for (i in 1:num_folds) {
   ########################################
   
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
-  
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
+
   # Setting up CNN model
   for(u in 1:num_initalizations){
-    
+
     # setting up model
     model_cnn <- keras_model_sequential()
-    model_cnn %>% 
-      layer_conv_1d(filters = 32, kernel_size = 2, activation = "relu", 
-                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>% 
+    model_cnn %>%
+      layer_conv_1d(filters = 32, kernel_size = 2, activation = "relu",
+                    input_shape = c(ncol(MV_train[train_split,]), 1)) %>%
       layer_max_pooling_1d(pool_size = 2) %>%
       layer_conv_1d(filters = 32, kernel_size = 2, activation = "relu") %>%
-      layer_flatten() %>% 
+      layer_flatten() %>%
       layer_dense(units = 16, activation = 'relu') %>%
       layer_dense(units = 8, activation = 'sigmoid') %>%
       layer_dense(units = 1, activation = 'sigmoid')
-    
+
     # Setting parameters for NN model
     model_cnn %>% compile(
-      optimizer = optimizer_adam(lr = 0.05), 
+      optimizer = optimizer_adam(lr = 0.05),
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
-    
+
     # Early stopping
     early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
-    
+
     # Setting up data
     reshaped_data_tensor_train = array(dim = c(nrow(MV_train[train_split,]), ncol(MV_train[train_split,]), 1))
     reshaped_data_tensor_train[, , 1] = as.matrix(MV_train[train_split,])
     reshaped_data_tensor_test = array(dim = c(nrow(MV_train[-train_split,]), ncol(MV_train[-train_split,]), 1))
     reshaped_data_tensor_test[, , 1] = as.matrix(MV_train[-train_split,])
-    
+
     # Training CNN model
-    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train, 
-                                     train_y[train_split], 
-                                     epochs = 250,  
+    history_cnn <- model_cnn %>% fit(reshaped_data_tensor_train,
+                                     train_y[train_split],
+                                     epochs = 250,
                                      validation_split = 0.2,
                                      callbacks = list(early_stop),
                                      verbose = 0)
-    
+
     # Predictions
     test_predictions <- model_cnn %>% predict(reshaped_data_tensor_test)
-    
+
     # Plotting
     error_cnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
-    
+
     # Checking error
     if(error_cnn_train < min_error_cnn){
-      
+
       # Setting up test data
       reshaped_data_tensor_test_final = array(dim = c(nrow(MV_test), ncol(MV_test), 1))
       reshaped_data_tensor_test_final[, , 1] = as.matrix(MV_test)
-      
+
       # Predictions
       pred_cnn <- model_cnn %>% predict(reshaped_data_tensor_test_final)
-      
+
       # Saving training plots
       cnn_training_plot[[i]] = as.data.frame(history_cnn)
-      
+
       # Error
       error_cnn = mean((c(pred_cnn) - test_y)^2, na.rm = T)
-      
+
       # New Min Error
       min_error_cnn = error_cnn_train
-      
+
     }
-    
+
   }
-  
+
   ########################################
   # Running Conventional Neural Network  #
   ########################################
-  
+
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
-  
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
+
   # Setting up NN model
   for(u in 1:num_initalizations){
-    
+
     # setting up model
     model_nn <- keras_model_sequential()
-    model_nn %>% 
+    model_nn %>%
       layer_dense(units = 16, activation = 'relu') %>%
       layer_dense(units = 8, activation = 'sigmoid') %>%
       layer_dense(units = 1, activation = 'sigmoid')
-    
+
     # Setting parameters for NN model
     model_nn %>% compile(
-      optimizer = optimizer_adam(lr = 0.05), 
+      optimizer = optimizer_adam(lr = 0.05),
       loss = 'mse',
       metrics = c('mean_squared_error')
     )
-    
+
     # Early stopping
     early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
-    
+
     # Training FNN model
-    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]), 
-                                   train_y[train_split], 
-                                   epochs = 250,  
+    history_nn <- model_nn %>% fit(as.matrix(MV_train[train_split,]),
+                                   train_y[train_split],
+                                   epochs = 250,
                                    validation_split = 0.2,
                                    callbacks = list(early_stop),
                                    verbose = 0)
-    
+
     # Predictions
     test_predictions <- model_nn %>% predict(as.matrix(MV_train[-train_split,]))
-    
+
     # Plotting
     error_nn_train = mean((c(test_predictions) - train_y[-train_split])^2)
-    
+
     # Checking error
     if(error_nn_train < min_error_nn){
-      
+
       # Predictions
       pred_nn <- model_nn %>% predict(as.matrix(MV_test))
-      
+
       # Error
       error_nn = mean((c(pred_nn) - test_y)^2, na.rm = T)
-      
+
       # Saving training plots
       nn_training_plot[[i]] = as.data.frame(history_nn)
-      
+
       # New Min Error
       min_error_nn = error_nn_train
-      
+
     }
-    
+
   }
   
   #####################################
@@ -336,13 +333,13 @@ for (i in 1:num_folds) {
   #####################################
   
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
+  set.seed(i)
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # # Setting up FNN model
   # for(u in 1:num_initalizations){
@@ -581,7 +578,7 @@ for (i in 1:num_folds) {
     theme_bw() +
     xlab("Epoch") +
     ylab("Validation Loss") +
-    ggtitle(paste("Conventional Neural Network; Fold: ", i)) +
+    ggtitle(paste("Neural Network; Fold: ", i)) +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text=element_text(size=12, face = "bold"),
           axis.title=element_text(size=12,face="bold"))
@@ -609,7 +606,7 @@ for (i in 1:num_folds) {
 # Final Plot
 n_plots <- length(training_plots_weather)
 nCol <- 3
-do.call("grid.arrange", c(training_plots_weather, ncol = nCol))
+do.call("grid.arrange", c(training_plots_weather, ncol = nCol)) # pdf 11 x 15
 
 # Functional Weight Plot
 
@@ -631,7 +628,8 @@ for (i in 1:num_folds) {
     geom_line(size = 1.5, color='blue') + 
     theme_bw() +
     xlab("Time") +
-    ylab("beta(t) [FNN Weather]") +
+    ylab("beta(t)") +
+    ggtitle(paste("FNN Weather; Fold", i)) +
     ylim(-0.6, 0.6) +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text=element_text(size=14, face = "bold"),
@@ -641,9 +639,9 @@ for (i in 1:num_folds) {
 # Final Plot
 n_plots <- length(weather_fnc_plots)
 nCol <- 2
-do.call("grid.arrange", c(weather_fnc_plots, ncol = nCol))
+do.call("grid.arrange", c(weather_fnc_plots, ncol = nCol)) # pdf 10 x 13
 
-# Functional Linear Model Plot
+# Functional Linear Model Weight Plot
 
 # Getting weights
 processed_weights_lm = lapply(flm_weights, function(x){return(x[-1, 1])})
@@ -681,26 +679,45 @@ processed_weights_lm_cleaned = do.call("rbind", processed_weights_lm)
 for (i in 1:num_folds) {
   
   # Setting up data set
-  beta_coef_fnn <- data.frame(time = seq(1, 165, 1), beta_evals = beta_lm_weather(seq(1, 365, 1), processed_weights_lm_cleaned[i, ]))
+  beta_coef_fnn <- data.frame(time = seq(1, 365, 1), beta_evals = beta_lm_weather(seq(1, 365, 1), processed_weights_lm_cleaned[i, ]))
   
-  # Plot
-  weather_lm_plots[[i]] = beta_coef_fnn %>% 
-    ggplot(aes(x = time, y = beta_evals)) +
-    geom_line(size = 1.5, color='red') + 
-    theme_bw() +
-    xlab("Time") +
-    ylab("beta(t) [FLM Weather]") +
-    ylim(-2, 2) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    theme(axis.text=element_text(size=14, face = "bold"),
-          axis.title=element_text(size=14,face="bold"))
+  if(i != 3){
+    # Plot
+    weather_lm_plots[[i]] = beta_coef_fnn %>% 
+      ggplot(aes(x = time, y = beta_evals)) +
+      geom_line(size = 1.5, color='purple') + 
+      theme_bw() +
+      xlab("Time") +
+      ylab("beta(t)") +
+      ggtitle(paste("FLM Weather; Fold", i)) +
+      ylim(-2, 2) +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(axis.text=element_text(size=14, face = "bold"),
+            axis.title=element_text(size=14,face="bold"))
+    
+  } else {
+    
+    # Plot
+    weather_lm_plots[[i]] = beta_coef_fnn %>% 
+      ggplot(aes(x = time, y = beta_evals)) +
+      geom_line(size = 1.5, color='purple') + 
+      theme_bw() +
+      xlab("Time") +
+      ylab("beta(t)") +
+      ggtitle(paste("FLM Weather; Fold", i)) +
+      ylim(-5, 7) +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(axis.text=element_text(size=14, face = "bold"),
+            axis.title=element_text(size=14,face="bold"))
+  }
+  
+
 }
 
 # Final Plot
 n_plots <- length(weather_lm_plots)
 nCol <- 2
-do.call("grid.arrange", c(weather_lm_plots, ncol = nCol))
-
+do.call("grid.arrange", c(weather_lm_plots, ncol = nCol)) # pdf 10 x1 3
 
 # Running paired t-tests
 

@@ -14,11 +14,11 @@
 # Continuum Domain: [1, 24]
 # Basis Functions used for Functional Observations: 31, Fourier
 # Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 
+# Basis Functions used for Functional Weights: 5
 # Folds Used: 10
-# Parameter Count in FNN: 
-# Parameter Count in CNN:
-# Parameter Count in NN:
+# Parameter Count in FNN: 3521
+# Parameter Count in CNN: 4001
+# Parameter Count in NN: 15649
 ##############################
 
 # Libraries
@@ -205,13 +205,13 @@ for (i in 1:num_folds) {
   ########################################
   
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
+  set.seed(i)
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up FNN model
   for(u in 1:num_initalizations){
@@ -288,13 +288,13 @@ for (i in 1:num_folds) {
   ########################################
   
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
+  set.seed(i)
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # Setting up FNN model
   for(u in 1:num_initalizations){
@@ -356,13 +356,13 @@ for (i in 1:num_folds) {
   #####################################
   
   # Setting seeds
-  # set.seed(i)
-  # use_session_with_seed(
-  #   i,
-  #   disable_gpu = F,
-  #   disable_parallel_cpu = F,
-  #   quiet = T
-  # )
+  set.seed(i)
+  use_session_with_seed(
+    i,
+    disable_gpu = F,
+    disable_parallel_cpu = F,
+    quiet = T
+  )
   
   # # Setting up FNN model
   # for(u in 1:num_initalizations){
@@ -638,7 +638,7 @@ for (i in 1:num_folds) {
     theme_bw() +
     xlab("Epoch") +
     ylab("Validation Loss") +
-    ggtitle(paste("Conventional Neural Network; Fold: ", i)) +
+    ggtitle(paste("Neural Network; Fold: ", i)) +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text=element_text(size=12, face = "bold"),
           axis.title=element_text(size=12,face="bold"))
@@ -665,8 +665,8 @@ for (i in 1:num_folds) {
 
 # Final Plot
 n_plots <- length(training_plots_bike)
-nCol <- floor(sqrt(n_plots))
-do.call("grid.arrange", c(training_plots_bike, ncol = nCol))
+nCol <- 3
+do.call("grid.arrange", c(training_plots_bike, ncol = nCol)) # pdf 11 x 15
 
 # Functional Weight Plot
 
@@ -688,7 +688,8 @@ for (i in 1:num_folds) {
     geom_line(size = 1.5, color='blue') + 
     theme_bw() +
     xlab("Time") +
-    ylab("beta(t) [FNN Bike]") +
+    ylab("beta(t)") +
+    ggtitle(paste("FNN Bike; Fold", i)) +
     ylim(-0.4, 0.45) +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text=element_text(size=14, face = "bold"),
@@ -698,7 +699,7 @@ for (i in 1:num_folds) {
 # Final Plot
 n_plots <- length(bike_fnc_plots)
 nCol <- 2
-do.call("grid.arrange", c(bike_fnc_plots, ncol = nCol))
+do.call("grid.arrange", c(bike_fnc_plots, ncol = nCol)) # pdf 10 x 13
 
 # Functional Linear Model Plot
 
@@ -743,10 +744,11 @@ for (i in 1:num_folds) {
   # Plot
   bike_lm_plots[[i]] = beta_coef_fnn %>% 
     ggplot(aes(x = time, y = beta_evals)) +
-    geom_line(size = 1.5, color='red') + 
+    geom_line(size = 1.5, color='purple') + 
     theme_bw() +
     xlab("Time") +
-    ylab("beta(t) [FLM Bike]") +
+    ylab("beta(t)") +
+    ggtitle(paste("FLM Bike; Fold", i)) +
     ylim(-2, 2) +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text=element_text(size=14, face = "bold"),
@@ -756,7 +758,7 @@ for (i in 1:num_folds) {
 # Final Plot
 n_plots <- length(bike_lm_plots)
 nCol <- 2
-do.call("grid.arrange", c(bike_lm_plots, ncol = nCol))
+do.call("grid.arrange", c(bike_lm_plots, ncol = nCol)) # pdf 10 x 13
 
 
 # Running paired t-tests
