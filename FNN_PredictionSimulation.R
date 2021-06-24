@@ -114,7 +114,7 @@ for (u in 1:sim_num) {
   ##################
   
   # Testing
-  u = 1
+  # u = 1
   
   # Generating data for each of observations
   sim_data <- matrix(nrow = 300, ncol = 100)
@@ -798,6 +798,8 @@ Final_Table_Sim1[18, 2] = colSds(error_mat_XGB1_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim1) = c("Mean", "SE")
+rownames(Final_Table_Sim1) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                               "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
 Final_Table_Sim1
 
 # Creating data frame
@@ -1593,6 +1595,8 @@ Final_Table_Sim2[18, 2] = colSds(error_mat_XGB2_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim2) = c("Mean", "SE")
+rownames(Final_Table_Sim2) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                              "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
 Final_Table_Sim2
 
 # Creating data frame
@@ -2387,6 +2391,8 @@ Final_Table_Sim3[18, 2] = colSds(error_mat_XGB3_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim3) = c("Mean", "SE")
+rownames(Final_Table_Sim3) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                               "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
 Final_Table_Sim3
 
 
@@ -3178,6 +3184,8 @@ Final_Table_Sim4[18, 2] = colSds(error_mat_XGB4_nf, na.rm = T)/sqrt(sim_num)
 
 # Looking at results
 colnames(Final_Table_Sim4) = c("Mean", "SE")
+rownames(Final_Table_Sim4) = c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN",
+                              "LM", "LASSO Min", "LASSO 1se", "RF", "GBM", "PPR", "MARS", "XGB")
 Final_Table_Sim4
 
 # Creating data frame
@@ -3516,7 +3524,7 @@ plot4_rel <- ggplot(stack(df_MSPE), aes(x = ind, y = values)) +
 plot4_rel
 
 # Saving plots (10 x 13 pdf)
-grid.draw(rbind(ggplotGrob(plot1_rel), ggplotGrob(plot2_rel), ggplotGrob(plot3_rel), ggplotGrob(plot4_rel), size = "last"))
+grid.draw(rbind(ggplotGrob(plot1_rel), ggplotGrob(plot2_rel), ggplotGrob(plot3_rel), ggplotGrob(plot4_rel), size = "last")) # pdf 11 x 15
 
 
 

@@ -333,18 +333,5 @@ n_plots <- length(list_plots)
 nCol <- 1
 do.call("grid.arrange", c(list_plots, ncol = nCol)) # Saved as 10 x 13 PDF file
 
-### Creating Actual v. Predicted Plot
-# actual_v_predicted = ggplot(data = data.frame(pred_fnn = pred_tec, actual = tecResp_test), aes(x = pred_fnn, y = actual)) +
-#   theme_bw() +
-#   geom_smooth(aes(color = "blue"), color = "blue", se = F) +
-#   geom_smooth(data = data.frame(pred_nn = pred_nn[,1], actual = tecResp_test), aes(x = pred_nn, y = actual, color = "green"), color = "green", se = F) +
-#   geom_smooth(data = data.frame(pred_cnn = pred_cnn[,1], actual = tecResp_test), aes(x = pred_cnn, y = actual, color = "red"), color = "red", se = F) +
-#   ggtitle(paste("Actual v. Predicted Plots")) +
-#   theme(plot.title = element_text(hjust = 0.5)) +
-#   theme(axis.text=element_text(size=12, face = "bold"),
-#         axis.title=element_text(size=12,face="bold")) +
-#   xlab("Predicted") +
-#   ylab("Actual")
-
 # Check 1
 # Check 2

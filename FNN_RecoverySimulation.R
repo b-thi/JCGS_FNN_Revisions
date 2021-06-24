@@ -240,7 +240,7 @@ sim_result1 <- data.frame(FNN = RMSE_fnn, LM = RMSE_lm)
 sqrt_RMSE1 <- data.frame(sim_result1)
 
 # Creating boxplots
-ggplot(stack(sqrt_RMSE1), aes(x = ind, y = values)) +
+plot1 = ggplot(stack(sqrt_RMSE1), aes(x = ind, y = values)) +
   geom_boxplot(fill='#A4A4A4', color="darkblue") + 
   theme_bw() + 
   xlab("Model\n (A)") +
@@ -512,7 +512,7 @@ sim_result2 <- data.frame(FNN = RMSE_fnn, LM = RMSE_lm)
 sqrt_RMSE2 <- data.frame(sim_result2)
 
 # Creating boxplots
-ggplot(stack(sqrt_RMSE2), aes(x = ind, y = values)) +
+plot2 = ggplot(stack(sqrt_RMSE2), aes(x = ind, y = values)) +
   geom_boxplot(fill='#A4A4A4', color="darkblue") + 
   theme_bw() + 
   xlab("Model\n (B)") +
@@ -783,7 +783,7 @@ sim_result3 <- data.frame(FNN = RMSE_fnn, LM = RMSE_lm)
 sqrt_RMSE3 <- data.frame(sim_result3)
 
 # Creating boxplots
-ggplot(stack(sqrt_RMSE3), aes(x = ind, y = values)) +
+plot3 = ggplot(stack(sqrt_RMSE3), aes(x = ind, y = values)) +
   geom_boxplot(fill='#A4A4A4', color="darkblue") + 
   theme_bw() + 
   xlab("Model\n (C)") +
@@ -1053,13 +1053,13 @@ sim_result4 <- data.frame(FNN = RMSE_fnn, LM = RMSE_lm)
 sqrt_RMSE4 <- data.frame(sim_result4)
 
 # Creating boxplots
-ggplot(stack(sqrt_RMSE4), aes(x = ind, y = values)) +
+plot4 = ggplot(stack(sqrt_RMSE4), aes(x = ind, y = values)) +
   geom_boxplot(fill='#A4A4A4', color="darkblue") + 
   theme_bw() + 
   xlab("Model\n (D)") +
   ylab("IMSE") +
   theme(axis.text=element_text(size=14, face= "bold"),
-        axis.title=element_text(size=14, face="bold"))
+        axis.title=element_text(size=14, face="bold")) # 6 x 4 pdf
 
 # Running paired t-test
 

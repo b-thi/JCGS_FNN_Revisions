@@ -22,7 +22,7 @@ source("FNN.R")
 load("Data/bike.RData")
 
 # Obtaining response
-rentals = log10(bike$y)
+rentals = sqrt(bike$y)
 
 # define the time points on which the functional predictor is observed. 
 timepts = bike$timepts
@@ -57,7 +57,7 @@ ablation_plots <- list()
 ### Changing number of basis functions ###
 
 # vector of basis to try
-basis_count_try = seq(from = 3, to = 101, by = 2)
+basis_count_try = seq(from = 3, to = 31, by = 2)
 
 # initializing
 basis_ablation_df = data.frame(value = NA, mspe = NA)
@@ -75,7 +75,7 @@ for (i in 1:length(basis_count_try)) {
   )
 
   # Creating folds (50/50 split)
-  num_folds = 2
+  num_folds = 5
   fold_ind = createFolds(rentals, k = num_folds)
   
   # Initializing
@@ -144,6 +144,7 @@ for (i in 1:length(basis_count_try)) {
 ablation_plots[[1]] = basis_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "blue") +
+  geom_smooth(size = 1.5, color = "blue") +
   theme_bw() +
   xlab("Number of Basis Functions") +
   ylab("MSPE") +
@@ -155,7 +156,7 @@ ablation_plots[[1]] = basis_ablation_df %>%
 ### Changing learn rate ###
 
 # vector of learn rates
-learn_rate_try = seq(from = 0.0001, to = 1, length.out = 50)
+learn_rate_try = seq(from = 0.0001, to = 1, length.out = 25)
 
 # initializing
 learnrate_ablation_df = data.frame(value = NA, mspe = NA)
@@ -242,6 +243,7 @@ for (i in 1:length(learn_rate_try)) {
 ablation_plots[[2]] = learnrate_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "red") +
+  geom_smooth(size = 1.5, color = "red") +
   theme_bw() +
   xlab("Learn Rate") +
   ylab("MSPE") +
@@ -339,7 +341,8 @@ for (i in 1:length(val_split_try)) {
 # Plotting
 ablation_plots[[3]] = valsplit_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
-  geom_point(size = 1.5, color = "green") +
+  geom_point(size = 1.5, color = "black") +
+  geom_smooth(size = 1.5, color = "black") +
   theme_bw() +
   xlab("Validation Split") +
   ylab("MSPE") +
@@ -351,7 +354,7 @@ ablation_plots[[3]] = valsplit_ablation_df %>%
 ### Changing number of epochs ###
 
 # vector of epochs
-epochs_try = seq(from = 10, to = 5000, length.out = 50)
+epochs_try = seq(from = 5, to = 500, length.out = 10)
 
 # initializing
 epochs_ablation_df = data.frame(value = NA, mspe = NA)
@@ -438,6 +441,7 @@ for (i in 1:length(epochs_try)) {
 ablation_plots[[4]] = epochs_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "purple") +
+  geom_smooth(size = 1.5, color = "purple") +
   theme_bw() +
   xlab("Epochs") +
   ylab("MSPE") +
@@ -449,7 +453,7 @@ ablation_plots[[4]] = epochs_ablation_df %>%
 ### Changing neurons ###
 
 # vector of neurons
-neurons_try = seq(from = 8, to = 256, length.out = 50)
+neurons_try = seq(from = 2, to = 256, length.out = 10)
 
 # initializing
 neurons_ablation_df = data.frame(value = NA, mspe = NA)
@@ -536,6 +540,7 @@ for (i in 1:length(neurons_try)) {
 ablation_plots[[5]] = neurons_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "orange") +
+  geom_smooth(size = 1.5, color = "orange") +
   theme_bw() +
   xlab("Neurons") +
   ylab("MSPE") +
@@ -547,7 +552,7 @@ ablation_plots[[5]] = neurons_ablation_df %>%
 ### Changing decay rate ###
 
 # vector of epochs
-decay_rate_try = seq(from = 0, to = 1, length.out = 50)
+decay_rate_try = seq(from = 0, to = 1, length.out = 20)
 
 # initializing
 decayrate_ablation_df = data.frame(value = NA, mspe = NA)
@@ -635,6 +640,7 @@ for (i in 1:length(decay_rate_try)) {
 ablation_plots[[6]] = decayrate_ablation_df %>% 
   ggplot(aes(x = value, y = mspe)) +
   geom_point(size = 1.5, color = "pink") +
+  geom_smooth(size = 1.5, color = "pink") +
   theme_bw() +
   xlab("Decay Rate") +
   ylab("MSPE") +
@@ -646,6 +652,6 @@ ablation_plots[[6]] = decayrate_ablation_df %>%
 
 # Final Plot
 n_plots <- length(ablation_plots)
-nCol <- 3
-do.call("grid.arrange", c(ablation_plots, ncol = nCol))
+nCol <- 2
+do.call("grid.arrange", c(ablation_plots, ncol = nCol)) # pdf 12 x 13
 

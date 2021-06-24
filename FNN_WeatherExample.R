@@ -73,29 +73,6 @@ error_mat_cnn = matrix(nrow = num_folds, ncol = 1)
 error_mat_nn = matrix(nrow = num_folds, ncol = 1)
 error_mat_fnn = matrix(nrow = num_folds, ncol = 1)
 
-# Doing pre-processing of neural networks
-# if(dim(temp_data)[3] > 1){
-#   # Now, let's pre-process
-#   pre_dat = FNN_First_Layer(func_cov = temp_data,
-#                             basis_choice = c("fourier", "fourier", "fourier"),
-#                             num_basis = c(5, 7, 9),
-#                             domain_range = list(c(min(timepts), max(timepts)), 
-#                                                 c(min(timepts), max(timepts)), 
-#                                                 c(min(timepts), max(timepts))),
-#                             covariate_scaling = T,
-#                             raw_data = F)
-#   
-# } else {
-#   
-#   # Now, let's pre-process
-#   pre_dat = FNN_First_Layer(func_cov = temp_data,
-#                             basis_choice = c("bspline"),
-#                             num_basis = c(19),
-#                             domain_range = list(c(min(timepts), max(timepts))),
-#                             covariate_scaling = T,
-#                             raw_data = F)
-# }
-
 # Functional weights & initializations
 func_weights = list()
 flm_weights = list()
@@ -341,89 +318,6 @@ for (i in 1:num_folds) {
     quiet = T
   )
   
-  # # Setting up FNN model
-  # for(u in 1:num_initalizations){
-  #   
-  #   # setting up model
-  #   model_fnn <- keras_model_sequential()
-  #   model_fnn %>% 
-  #     # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu",
-  #     #               input_shape = c(ncol(pre_train[train_split,]), 1)) %>%
-  #     # layer_max_pooling_1d(pool_size = 2) %>%
-  #     # layer_conv_1d(filters = 64, kernel_size = 2, activation = "relu") %>%
-  #     # layer_flatten() %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 64, activation = 'relu') %>%
-  #     layer_dense(units = 1, activation = 'sigmoid')
-  #   
-  #   # Setting parameters for FNN model
-  #   model_fnn %>% compile(
-  #     optimizer = optimizer_adam(lr = 0.00005), 
-  #     loss = 'mse',
-  #     metrics = c('mean_squared_error')
-  #   )
-  #   
-  #   # Early stopping
-  #   early_stop <- callback_early_stopping(monitor = "val_loss", patience = 50)
-  #   
-  #   # Setting up data
-  #   reshaped_data_tensor_train = array(dim = c(nrow(pre_train[train_split,]), ncol(pre_train[train_split,]), 1))
-  #   reshaped_data_tensor_train[, , 1] = as.matrix(pre_train[train_split,])
-  #   reshaped_data_tensor_test = array(dim = c(nrow(pre_train[-train_split,]), ncol(pre_train[-train_split,]), 1))
-  #   reshaped_data_tensor_test[, , 1] = as.matrix(pre_train[-train_split,])
-  #   
-  #   # Training FNN model
-  #   # history_fnn <- model_fnn %>% fit(reshaped_data_tensor_train,
-  #   #                  train_y[train_split],
-  #   #                  epochs = 5000,
-  #   #                  validation_split = 0.2,
-  #   #                  callbacks = list(early_stop),
-  #   #                  verbose = 0)
-  #   
-  #   # Training FNN model
-  #   history_fnn = model_fnn %>% fit(pre_train[train_split,],
-  #                     train_y[train_split],
-  #                     epochs = 5000,
-  #                     validation_split = 0.2,
-  #                     callbacks = list(early_stop),
-  #                     verbose = 1)
-  #   
-  #   # Predictions
-  #   test_predictions <- model_fnn %>% predict(pre_train[-train_split,])
-  #   # test_predictions <- model_fnn %>% predict(reshaped_data_tensor_test)
-  #   
-  #   # Storing
-  #   # error_fnn_train = mean((c(test_predictions) - train_y[-train_split])^2)
-  #   error_fnn_train = mean((test_predictions - train_y[-train_split])^2, na.rm = T)
-  #   
-  #   # Checking error
-  #   if(error_fnn_train < min_error_fnn){
-  #     
-  #     # Setting up test data
-  #     reshaped_data_tensor_test_final = array(dim = c(nrow(pre_test), ncol(pre_test), 1))
-  #     reshaped_data_tensor_test_final[, , 1] = as.matrix(pre_test)
-  #     
-  #     # Predictions
-  #     pred_fnn <- model_fnn %>% predict(pre_test)
-  #     # pred_fnn <- model_fnn %>% predict(reshaped_data_tensor_test_final)
-  #     
-  #     # Error
-  #     error_fnn = mean((c(pred_fnn) - test_y)^2, na.rm = T)
-  #     
-  #     # Saving training plots
-  #     fnn_training_plot[[i]] = as.data.frame(history_fnn)
-  #     
-  #     # New Min Error
-  #     min_error_fnn = error_fnn_train
-  #     
-  #   }
-  #   
-  # }
-  
   # Running FNN for weather
   fnn_example = FNN(resp = train_y, 
                     func_cov = weather_data_train, 
@@ -474,18 +368,6 @@ for (i in 1:num_folds) {
   error_mat_cnn[i, 1] = mean((pred_cnn - test_y)^2, na.rm = T)
   error_mat_nn[i, 1] = mean((pred_nn - test_y)^2, na.rm = T)
   error_mat_fnn[i, 1] = mean((pred_fnn - test_y)^2, na.rm = T)
-  
-  # R^2 Results
-  # error_mat_lm[i, 2] = 1 - sum((c(pred_basis) - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_pc1[i, 2] = 1 - sum((pred_pc - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_pc2[i, 2] = 1 - sum((pred_pc2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_pc3[i, 2] = 1 - sum((pred_pc3 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_pls1[i, 2] = 1 - sum((pred_pls - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_pls2[i, 2] = 1 - sum((pred_pls2 - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_np[i, 2] = 1 - sum((pred_np - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_cnn[i, 2] = 1 - sum((pred_cnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_nn[i, 2] = 1 - sum((pred_nn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
-  # error_mat_fnn[i, 2] = 1 - sum((pred_fnn - test_y)^2, na.rm=TRUE)/sum((test_y - mean(test_y))^2, na.rm=TRUE)
  
   # Printing iteration number
   print(paste0("Done Iteration: ", i))
@@ -509,18 +391,6 @@ Final_Table_Weather[7, 1] = mean(error_mat_pls2[,1], na.rm = T)
 Final_Table_Weather[8, 1] = mean(error_mat_cnn[,1], na.rm = T)
 Final_Table_Weather[9, 1] = mean(error_mat_nn[,1], na.rm = T)
 Final_Table_Weather[10, 1] = mean(error_mat_fnn[,1], na.rm = T)
-
-# R_Squared value
-# Final_Table_Weather[1, 2] = mean(error_mat_lm[,2], na.rm = T)
-# Final_Table_Weather[2, 2] = mean(error_mat_np[,2], na.rm = T)
-# Final_Table_Weather[3, 2] = mean(error_mat_pc1[,2], na.rm = T)
-# Final_Table_Weather[4, 2] = mean(error_mat_pc2[,2], na.rm = T)
-# Final_Table_Weather[5, 2] = mean(error_mat_pc3[,2], na.rm = T)
-# Final_Table_Weather[6, 2] = mean(error_mat_pls1[,2], na.rm = T)
-# Final_Table_Weather[7, 2] = mean(error_mat_pls2[,2], na.rm = T)
-# Final_Table_Weather[8, 2] = mean(error_mat_cnn[,2], na.rm = T)
-# Final_Table_Weather[9, 2] = mean(error_mat_nn[,2], na.rm = T)
-# Final_Table_Weather[10, 2] = mean(error_mat_fnn[,2], na.rm = T)
 
 # Standard error
 Final_Table_Weather[1, 2] = sd(c(error_mat_lm[,1]), na.rm = T)/sqrt(num_folds)
