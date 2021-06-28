@@ -1,10 +1,10 @@
 ---------------------------------------------------------------
 
-Files for: Deep Learning with Functional Inputs (Revision)
+##Files for: Deep Learning with Functional Inputs (Revision)
 
 ---------------------------------------------------------------
 
-This text file has information on each script for the paper "Deep Learning with Functional Inputs". It also has information on what package versions are required to make sure that they all run
+###This text file has information on each script for the paper "Deep Learning with Functional Inputs". It also has information on what package versions are required to make sure that they all run
 
 ---------------------------------------------------------------
 
@@ -36,7 +36,7 @@ daily.RDS = Data for the weather example.
 
 ---------------------------------------------------------------
 
-Since we are using Keras/Tensorflow in the background, an installation of Python is required on the machine. Our results also require particular versions of these so, to make sure things work, we recommend the following steps (Windows):
+###Since we are using Keras/Tensorflow in the background, an installation of Python is required on the machine. Our results also require particular versions of these so, to make sure things work, we recommend the following steps (Windows):
 
 1. Download Anaconda (https://www.anaconda.com/products/individual)
 2. Open Anaconda Prompt
