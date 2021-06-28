@@ -39,23 +39,31 @@
 2. Open Anaconda Prompt
 
 3. Create Python 3.7 environment
-3a. conda create --name python37 activate
+
+- conda create --name python37 activate
 
 4. Install the Python version so Keras and Tensorflow 
-4a. pip install tensorflow==1.14.0 
-4b. pip install keras==2.2.4
+
+- pip install tensorflow==1.14.0 
+
+- pip install keras==2.2.4
 
 5. Now, we need to open R and install the correct versions of Keras and Tensorflow for R 
-5a. install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org") 
-5b. install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
+
+- install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org") 
+
+- install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
 
 6. R wil likely default to the main version of Python you install when you installed Anaconda so you need to set it to the virtual environment we created earlier using Reticulate
-6a. library(reticulate)
-6b. use_condaenv(condaenv = 'PFDA', conda = "C:/~path_to_version/anaconda3/envs/Python37/python.exe")
-6c. use_python("C:/~path_to_version/anaconda3/envs/Python37/python.exe")
-6d. As a side point, remember to delete .Rdata in your working directory and restart the R session before setting the above paths (otherwise R will default to that information)
+
+- library(reticulate)
+
+- use_condaenv(condaenv = 'PFDA', conda = "C:/~path_to_version/anaconda3/envs/Python37/python.exe")
+
+- use_python("C:/~path_to_version/anaconda3/envs/Python37/python.exe")
+
+- As a side point, remember to delete .Rdata in your working directory and restart the R session before setting the above paths (otherwise R will default to that information)
 
 7. At this point, everything should be working and you can just confirm you have the right versions of all the packages by looking at the PackageVersions.Lock file!
 
-If there are any issues, feel free to contact us (you may also need to install the r-versions [not to be confused with R] of Keras and Tensorflow in Anaconda as well which has the versions r-keras 2.2.4.1 & r-tensorflow 1.13.1, respectively.) and we
-will attempt to respond to you promptly. We apologize for any inconvenience but this is a neccesary evil for anyone running these infrastructures in an R environment! Thank you.
+If there are any issues, feel free to contact us (you may also need to install the r-versions [not to be confused with R] of Keras and Tensorflow in Anaconda as well which has the versions r-keras 2.2.4.1 & r-tensorflow 1.13.1, respectively.) and we will attempt to respond to you promptly. We apologize for any inconvenience but this is a neccesary evil for anyone running these infrastructures in an R environment! Thank you.
