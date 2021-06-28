@@ -6,7 +6,7 @@
 
 
 ##############################
-# Data Information:
+# Some Data Information:
 #
 # Bike Data Set
 # Observations: 102
@@ -116,10 +116,6 @@ for (i in 1:num_folds) {
   bike_data_train[,,1] = bike_data[, -fold_ind[[i]], ]
   bike_data_test[,,1] = bike_data[, fold_ind[[i]], ]
   
-  # Setting up for FNN
-  # pre_train = pre_dat$data[-fold_ind[[i]], ]
-  # pre_test = pre_dat$data[fold_ind[[i]], ]
-  
   ###################################
   # Running usual functional models #
   ###################################
@@ -165,7 +161,6 @@ for (i in 1:num_folds) {
   # Initializing
   min_error_nn = 99999
   min_error_cnn = 99999
-  # min_error_fnn = 99999
   
   # Setting up MV data
   MV_train = as.data.frame(bike$temp[-fold_ind[[i]],])
@@ -174,7 +169,7 @@ for (i in 1:num_folds) {
   # Random Split
   train_split = sample(1:nrow(MV_train), floor(0.5*nrow(MV_train)))
   
-  # Learn rates grid
+  # Initialization Count
   num_initalizations = 10
   
   ########################################
@@ -190,7 +185,7 @@ for (i in 1:num_folds) {
     quiet = T
   )
   
-  # Setting up FNN model
+  # Setting up CNN model
   for(u in 1:num_initalizations){
     
     # setting up model
@@ -273,7 +268,7 @@ for (i in 1:num_folds) {
     quiet = T
   )
   
-  # Setting up FNN model
+  # Setting up NN model
   for(u in 1:num_initalizations){
     
     # setting up model
@@ -432,7 +427,7 @@ colnames(Final_Table_Bike) <- c("CV_MSPE", "R2", "SE")
 rownames(Final_Table_Bike) <- c("FLM", "FNP", "FPC", "FPC_Deriv", "FPC_Ridge", "FPLS", "FPLS_Deriv", "CNN", "NN", "FNN")
 Final_Table_Bike
 
-# Training plots saving
+### Training plots saving
 
 # Initializing plots
 training_plots_bike = list()

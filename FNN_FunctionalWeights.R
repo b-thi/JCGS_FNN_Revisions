@@ -122,15 +122,6 @@ beta_coef_fnn %>%
 # Bike Data Set              #
 ##############################
 
-# Setting seeds
-# set.seed(2020)
-# use_session_with_seed(
-#   2020,
-#   disable_gpu = F,
-#   disable_parallel_cpu = F,
-#   quiet = T
-# )
-
 # Loading data
 load("Data/bike.RData")
 
@@ -259,4 +250,3 @@ beta_coef_lm %>%
 
 
 # Check 1
-# Check 2

@@ -7,58 +7,6 @@
 ##### Libraries #####
 source("FNN.R")
 
-##############################
-# Data Information:
-#
-# Sim Data Set 1 [Identity]
-# Observations: 300
-# Continuum Points: 100
-# Domain: [0, 1]
-# Basis Functions used for Functional Observations: 5, Fourier
-# Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 5
-# Folds Used: 100
-# Parameter Count in FNN: 657
-# Parameter Count in CNN: 58177
-# Parameter Count in NN: 2177
-
-# Sim Data Set 2 [Exponential]
-# Observations: 300
-# Continuum Points: 100
-# Domain: [0, 1]
-# Basis Functions used for Functional Observations: 5, Fourier
-# Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 5
-# Folds Used: 100
-# Parameter Count in FNN: 657
-# Parameter Count in CNN: 58177
-# Parameter Count in NN: 2177
-
-# Sim Data Set 3 [Sigmoidal]
-# Observations: 300
-# Continuum Points: 100
-# Domain: [0, 1]
-# Basis Functions used for Functional Observations: 5, Fourier
-# Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 5
-# Folds Used: 100
-# Parameter Count in FNN: 657
-# Parameter Count in CNN: 58177
-# Parameter Count in NN: 2177
-
-# Sim Data Set 4 [Log]
-# Observations: 300
-# Continuum Points: 100
-# Domain: [0, 1]
-# Basis Functions used for Functional Observations: 5, Fourier
-# Range of Response: [a, b]
-# Basis Functions used for Functional Weights: 5
-# Folds Used: 100
-# Parameter Count in FNN: 657
-# Parameter Count in CNN: 58177
-# Parameter Count in NN: 2177
-##############################
-
 #############################################################
 # 1 - Identity 
 #############################################################
@@ -3525,7 +3473,6 @@ plot4_rel
 
 # Saving plots (10 x 13 pdf)
 grid.draw(rbind(ggplotGrob(plot1_rel), ggplotGrob(plot2_rel), ggplotGrob(plot3_rel), ggplotGrob(plot4_rel), size = "last")) # pdf 11 x 15
-
 
 
 # Check 1

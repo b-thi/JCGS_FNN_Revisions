@@ -655,3 +655,4 @@ n_plots <- length(ablation_plots)
 nCol <- 2
 do.call("grid.arrange", c(ablation_plots, ncol = nCol)) # pdf 12 x 13
 
+# Check 1

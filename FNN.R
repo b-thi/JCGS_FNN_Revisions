@@ -30,25 +30,18 @@ library(reshape2)
 library(grid)
 library(flux)
 
-# Setting up python environment
+# Setting up python environment (UNCOMMENT THESE AND SET PATH)
 library(reticulate)
-use_condaenv(condaenv = 'PFDA', conda = "C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
-use_python("C:/Users/Barinder/anaconda3/envs/Python37/python.exe")
+# use_condaenv(condaenv = 'PFDA', conda = "C:/~path/anaconda3/envs/Python37/python.exe")
+# use_python("C:/~path/anaconda3/envs/Python37/python.exe")
 
 # require(devtools)
 # install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
 # install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
 
-# R Environment set up
-# install.packages("renv")
-# library(renv)
-# init()
-# snapshot()
-# restore()
-
 # (0) First Layer Function -- for direct connection to Keras
 
-# First Layer Function
+# First Layer Function (Was not used but here for testing purposes)
 FNN_First_Layer <- function(func_cov, 
                             scalar_cov = NULL,
                             basis_choice, 
@@ -57,9 +50,6 @@ FNN_First_Layer <- function(func_cov,
                             covariate_scaling = T,
                             raw_data = F,
                             print_info = F){
-  
-  
-  #### FLAG: The above might break for functional responses
 
   
   ##### Helper Functions #####

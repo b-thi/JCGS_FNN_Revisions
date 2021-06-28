@@ -5,7 +5,7 @@
 ##############################
 
 ##############################
-# Data Information:
+# Some Data Information:
 #
 # Weather Data Set
 # Observations: 35
@@ -157,7 +157,7 @@ for (i in 1:num_folds) {
   # Random Split
   train_split = sample(1:nrow(MV_train), floor(0.75*nrow(MV_train)))
   
-  # Learn rates grid
+  # Initialization Count
   num_initalizations = 10
   
   ########################################

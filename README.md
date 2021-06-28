@@ -1,8 +1,6 @@
 ## Files for: Deep Learning with Functional Inputs (Revision)
 
----------------------------------------------------------------
-
-### This text file has information on each script for the paper "Deep Learning with Functional Inputs". It also has information on what package versions are required to make sure that they all run
+### This markdown file has information on each script for the paper "Deep Learning with Functional Inputs". It also has information on what package versions are required to make sure that they all run.
 
 ---------------------------------------------------------------
 
@@ -26,11 +24,11 @@
 
 - PackageVersions.lock = Contains the exact versions of all the packages loaded in FNN.R. This is for reproducibility purposes (see below) and this file opens in R.
 
-- bike.RData = Data for the bike example.
+- Data/bike.RData = Data for the bike example.
 
-- tecator.RDS = Data for the tecator example.
+- Data/tecator.RDS = Data for the tecator example.
 
-- daily.RDS = Data for the weather example.
+- Data/daily.RDS = Data for the weather example.
 
 ---------------------------------------------------------------
 

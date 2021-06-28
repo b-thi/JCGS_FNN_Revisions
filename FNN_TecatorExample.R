@@ -5,7 +5,7 @@
 ##############################
 
 ##############################
-# Data Information:
+# Some Data Information:
 #
 # Tecator Data Set
 # Observations: 215
@@ -122,7 +122,7 @@ MV_test = as.data.frame(cbind(as.data.frame((tecator$absorp.fdata$data)[-ind,]),
 # Random Split
 train_split = sample(1:nrow(MV_train), floor(0.8*nrow(MV_train)))
 
-# Learn rates grid
+# Initialization Count
 num_initalizations = 10
 i = 1
 
@@ -334,4 +334,3 @@ nCol <- 1
 do.call("grid.arrange", c(list_plots, ncol = nCol)) # Saved as 10 x 13 PDF file
 
 # Check 1
-# Check 2

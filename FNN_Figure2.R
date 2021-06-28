@@ -135,4 +135,3 @@ fnn_bike <- FNN(resp = rentals,
                 print_info = T)
 
 # Check 1
-# Check 2
