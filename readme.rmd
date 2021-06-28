@@ -55,5 +55,5 @@ daily.RDS = Data for the weather example.
 6d. As a side point, remember to delete .Rdata in your working directory and restart the R session before setting the above paths (otherwise R will default to that information)
 7. At this point, everything should be working and you can just confirm you have the right versions of all the packages by looking at the PackageVersions.Lock file!
 
-If there are any issues, feel free to contact us (you may also need to install the r-versions of Keras and Tensorflow in Anaconda as well which has the versions 2.2.4.1 & 1.13.1, respectively.) and we
+If there are any issues, feel free to contact us (you may also need to install the r-versions [not to be confused with R] of Keras and Tensorflow in Anaconda as well which has the versions r-keras 2.2.4.1 & r-tensorflow 1.13.1, respectively.) and we
 will attempt to respond to you promptly. We apologize for any inconvenience but this is a neccesary evil for anyone running these infrastructures in an R environment! Thank you.
