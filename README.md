@@ -62,6 +62,8 @@
 
 - use_python("C:/~path_to_version/anaconda3/envs/Python37/python.exe")
 
+- The above code has been commented out in the FNN.R file so you can uncomment and set the paths!
+
 - As a side point, remember to delete .Rdata in your working directory and restart the R session before setting the above paths (otherwise R will default to that information)
 
 7. At this point, everything should be working and you can just confirm you have the right versions of all the packages by looking at the PackageVersions.Lock file!
