@@ -36,11 +36,11 @@
 
 1. Download Anaconda (https://www.anaconda.com/products/individual)
 
-2. Open Anaconda Prompt
+2. Open Anaconda Prompt (or, on Mac, open LaunchPad and click Terminal)
 
 3. Create Python 3.7 environment
 
-- conda create --name python37 activate
+- conda create --n python37 python=3.7 activate
 
 4. Install the Python version so Keras and Tensorflow 
 
@@ -48,7 +48,7 @@
 
 - pip install keras==2.2.4
 
-5. Now, we need to open R and install the correct versions of Keras and Tensorflow for R 
+5. Now, we need to open R and install the correct versions of Keras and Tensorflow for R, so in RStudio, run the following:
 
 - install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org") 
 
