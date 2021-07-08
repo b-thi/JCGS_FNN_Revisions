@@ -30,14 +30,19 @@ library(reshape2)
 library(grid)
 library(flux)
 
+# UNCOMMONENT THESE NEXT 3 LINES TO INSTALL 
+# require(devtools)
+# install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
+# install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
+
 # Setting up python environment (UNCOMMENT THESE AND SET PATH)
+# Remember to delete .RData in your working directory before running these as R stores a cache of what Python version to use
+# Remember to adjust the code so that the path is pointing towards your python 3.7 environment
 library(reticulate)
 # use_condaenv(condaenv = 'PFDA', conda = "C:/~path/anaconda3/envs/Python37/python.exe")
 # use_python("C:/~path/anaconda3/envs/Python37/python.exe")
 
-# require(devtools)
-# install_version("tensorflow", version = "2.2.0", repos = "http://cran.us.r-project.org")
-# install_version("keras", version = "2.2.5.0", repos = "http://cran.us.r-project.org")
+
 
 # (0) First Layer Function -- for direct connection to Keras
 
