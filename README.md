@@ -78,4 +78,6 @@
 
 - We recommend running FNN_Figure2.R script first as it runs quick relative to the other scripts. The simulation scripts take a very long time to run. All the scripts reproduce results found in the paper or the supplementary document!
 
+- As far as the versions for R are concerned, we tested on R Version: 4.0.5 and R Studio Version: 1.4.1106
+
 If there are any issues, feel free to contact us (you may also need to install the r-versions [not to be confused with R] of Keras and Tensorflow in Anaconda as well which has the versions r-keras 2.2.4.1 & r-tensorflow 1.13.1, respectively.) and we will attempt to respond to you promptly. We apologize for any inconvenience but this is a neccesary evil for anyone running these infrastructures in an R environment! Thank you.
